@@ -1,0 +1,44 @@
+# Visual Studio / Rider / IDE
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build
+bin/
+obj/
+out/
+
+# NuGet
+*.nupkg
+packages/
+*.snupkg
+
+# Rider / JetBrains
+.idea/
+
+# ASP.NET / Secrets
+appsettings*.json
+secrets.json
+*.pfx
+*.key
+
+# Environment / credentials
+.env
+*.local
+*.secret
+*.password
+*.credentials
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Other generated files
+*.cache
+*.lock.json
