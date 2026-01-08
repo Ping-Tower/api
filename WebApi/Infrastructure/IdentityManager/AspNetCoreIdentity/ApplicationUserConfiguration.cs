@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
 
 namespace Infrastructure.Identity.AspNetCoreIdentity;
 

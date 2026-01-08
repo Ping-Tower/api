@@ -1,6 +1,6 @@
 using Domain.Entities;
 using Infrastructure.DataManager.Configurations;
-using Infrastructure.Identity.AspNetCoreIdentity;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +11,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     { }
 
-    public DbSet<Server> Serevers { get; set; }
+    public DbSet<Server> Servers { get; set; }
     public DbSet<Request> Requests { get; set; }
     public DbSet<Token> Tokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        base.OnModelCreating(builder);
+
         builder.ApplyConfiguration(new RequestConfiguration());
         builder.ApplyConfiguration(new ServerConfiguration());
         builder.ApplyConfiguration(new TokenConfiguration());

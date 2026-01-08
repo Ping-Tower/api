@@ -1,6 +1,7 @@
 using Domain.Entities;
 using Infrastructure.Common;
-using Infrastructure.Identity.AspNetCoreIdentity;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.DataManager.Configurations;
@@ -14,9 +15,18 @@ public class ServerConfiguration : BaseEntityConfiguration<Server>
         builder.Property(w => w.Name)
         .IsRequired().HasMaxLength(255);
 
-        builder.Property(w => w.Address)
-        .IsRequired();
-        
+        builder.Property(w => w.Host)
+        .IsRequired().HasMaxLength(255);
+
+        builder.Property(w => w.Port)
+        .IsRequired(false);
+
+        builder.Property(w => w.CheckIntervalSec)
+        .IsRequired().HasDefaultValue(60);
+
+        builder.Property(w => w.IsActive)
+        .IsRequired().HasDefaultValue(true);
+
         builder.HasOne<ApplicationUser>()
         .WithMany(w => w.ServerRefs)
         .HasForeignKey(w => w.UserId);

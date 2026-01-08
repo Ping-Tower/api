@@ -4,7 +4,6 @@ using Infrastructure.DataManager.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql.Replication;
 
 namespace Infrastructure.DataManager;
 
@@ -12,7 +11,10 @@ public static class DI
 {
     public static IServiceCollection ApplyDataManager(this IServiceCollection services, IConfiguration configuration)
     {
-        var conectionstring = configuration.GetConnectionString("Database");
+        var conectionstring = configuration.GetConnectionString("Postgres");
+
+        if(string.IsNullOrEmpty(conectionstring))
+            throw new Exception("Postgres connectionstring is missing!");
 
         services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(conectionstring));

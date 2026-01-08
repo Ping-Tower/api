@@ -1,11 +1,11 @@
 using Application.Common.Interfaces;
 using Application.DTOs;
-using Infrastructure.Identity.AspNetCoreIdentity;
 using Microsoft.AspNetCore.Identity;
 using Application.Common.Exceptions;
 using Infrastructure.IdentityManager.Tokens;
 using Domain.Entities;
 using Infrastructure.DataManager.Contexts;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
 
 namespace Infrastructure.IdentityManager.AspNetCoreIdentity;
 
@@ -71,10 +71,11 @@ public class IdentityService : IIdentityService
         };
     }
 
-    public async Task<> LogoutAsync(string userId, CancellationToken cancellationToken)
+    public async Task<LogOutResultDto> LogoutAsync(string userId, CancellationToken cancellationToken)
     {
         var tokens = _dbContext.Tokens.Where(t => t.UserId == userId);
         _dbContext.Tokens.RemoveRange(tokens);
         await _dbContext.SaveChangesAsync(cancellationToken);
+        return new LogOutResultDto();
     }
 }

@@ -2,8 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Infrastructure.Identity.AspNetCoreIdentity;
 using System.Security.Cryptography;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
 
 
 namespace Infrastructure.IdentityManager.Tokens;

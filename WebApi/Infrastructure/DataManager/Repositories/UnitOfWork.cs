@@ -1,4 +1,3 @@
-using System.Data;
 using Application.Common.Interfaces;
 using Infrastructure.DataManager.Contexts;
 using Microsoft.EntityFrameworkCore.Storage;

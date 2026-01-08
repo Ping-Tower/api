@@ -1,6 +1,6 @@
 using Domain.Entities;
 using Infrastructure.Common;
-using Infrastructure.Identity.AspNetCoreIdentity;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.DataManager.Configurations;

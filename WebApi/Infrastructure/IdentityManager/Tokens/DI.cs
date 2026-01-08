@@ -11,12 +11,15 @@ public static class DI
 {
     public static IServiceCollection ApplyTokenManager(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<TokenSettings>(configuration.GetSection("Jwt"));
+        services.Configure<TokenSettings>(configuration.GetSection("JwtSettings"));
 
         services.AddAuthentication(options => options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
-            var tokenSettings = configuration.GetSection("Jwt").Get<TokenSettings>();
+            var tokenSettings = configuration.GetSection("JwtSettings").Get<TokenSettings>();
+
+            if(tokenSettings == null)
+                throw new Exception("JwtSettings are missing!");
 
             options.TokenValidationParameters = new TokenValidationParameters
             {

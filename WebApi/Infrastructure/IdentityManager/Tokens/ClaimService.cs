@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Infrastructure.DataManager.Contexts;
-using Infrastructure.Identity.AspNetCoreIdentity;
 using Microsoft.AspNetCore.Identity;
 namespace Infrastructure.IdentityManager.Tokens;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
 
 public class ClaimService
 {
@@ -30,7 +30,6 @@ public class ClaimService
             
         var claims = new List<Claim>
         {
-        
            new Claim(ClaimTypes.NameIdentifier, userFromDb.Id),
            new Claim(ClaimTypes.Name, userFromDb.UserName ?? string.Empty),
            new Claim(ClaimTypes.Email, userFromDb.Email ?? string.Empty)

@@ -1,3 +1,4 @@
+using Application;
 using coo.Presentation.Common.Middlewares;
 using Infrastructure;
 using Presentation;
@@ -8,6 +9,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddPresentation();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication(builder.Configuration);
 
 var app = builder.Build();
 

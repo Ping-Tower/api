@@ -2,6 +2,7 @@ using Infrastructure.DataManager.Contexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Infrastructure.IdentityManager.AspNetCoreIdentity;
 
 namespace Infrastructure.Identity.AspNetCoreIdentity;
 

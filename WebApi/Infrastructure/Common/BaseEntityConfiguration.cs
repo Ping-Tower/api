@@ -11,13 +11,13 @@ public abstract class BaseEntityConfiguration<TEntity> : IEntityTypeConfiguratio
         builder.HasKey(w => w.Id);
 
         builder.Property(w => w.CreatedAt)
-        .IsRequired(false);
+        .HasDefaultValueSql("NOW()");
 
         builder.Property(w => w.CreatedBy)
         .IsRequired(false);
 
         builder.Property(w => w.ModifiedAt)
-        .IsRequired(false);
+        .HasDefaultValueSql("NOW()");
 
         builder.Property(w => w.ModifiedBy)
         .IsRequired(false);

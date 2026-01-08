@@ -1,3 +1,3 @@
-public class LogOutDto
-{
-}
+namespace Application.DTOs;
+public class LogOutResultDto
+{}
