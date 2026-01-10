@@ -1,4 +1,4 @@
-namespace Infrastructure.Identity.AspNetCoreIdentity;
+namespace Infrastructure.IdentityManager.AspNetCoreIdentity;
 
 public class IdentitySettings
 {

@@ -5,6 +5,7 @@ using Infrastructure.Identity.AspNetCoreIdentity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Infrastructure.IdentityManager.AspNetCoreIdentity;
+using Infrastructure.RabbitMqManager;
 
 namespace Infrastructure;
 
@@ -19,6 +20,8 @@ public static class DependencyInjection
         services.ApplyTokenManager(configuration);
 
         services.AddTransient<IIdentityService, IdentityService>();
+
+        services.ApplyRabbitMq(configuration);
 
         return services;
     }
