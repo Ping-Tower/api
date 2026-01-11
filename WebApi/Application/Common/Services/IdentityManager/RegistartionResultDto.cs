@@ -1,4 +1,4 @@
-namespace Application.DTOs;
+namespace Application.Common.Services.IdentityManager;
 
 public class RegistrationResultDto
 {

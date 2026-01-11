@@ -19,7 +19,7 @@ public class TokenService
         _claimService = claimService;
     }
 
-    public async Task<(string, DateTime)> GenerateJwtToken(ApplicationUser user, CancellationToken cancellationToken)
+    public async Task<(string, DateTime)> GenerateJwtTokenAsync(ApplicationUser user, CancellationToken cancellationToken)
     {
         var claims = await _claimService.GetClaimsAsync(user, cancellationToken);
 

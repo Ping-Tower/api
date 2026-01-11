@@ -1,4 +1,4 @@
-using Application.Common.Interfaces;
+using Application.Common.Services.IdentityManager;
 using Infrastructure.DataManager;
 using Infrastructure.IdentityManager.Tokens;
 using Infrastructure.Identity.AspNetCoreIdentity;
