@@ -14,6 +14,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Server> Servers { get; set; }
     public DbSet<Request> Requests { get; set; }
     public DbSet<Token> Tokens { get; set; }
+    public DbSet<NotificationSettings> NotificationSettings {get; set;}
+    public DbSet<PingSettings> PingSettings {get; set;}
+    public DbSet<ServerState> ServerState {get; set;}
+    public DbSet<TelegramAccount> TelegramAccount {get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -22,5 +26,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.ApplyConfiguration(new RequestConfiguration());
         builder.ApplyConfiguration(new ServerConfiguration());
         builder.ApplyConfiguration(new TokenConfiguration());
+        builder.ApplyConfiguration(new NotificationSettingsConfiguration());
+        builder.ApplyConfiguration(new PingSettingsConfiguration());
+        builder.ApplyConfiguration(new ServerStateConfiguration());
+        builder.ApplyConfiguration(new TelegramAccountsConfiguration());
     }
 }

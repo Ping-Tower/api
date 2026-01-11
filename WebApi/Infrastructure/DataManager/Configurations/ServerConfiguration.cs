@@ -21,9 +21,6 @@ public class ServerConfiguration : BaseEntityConfiguration<Server>
         builder.Property(w => w.Port)
         .IsRequired(false);
 
-        builder.Property(w => w.CheckIntervalSec)
-        .IsRequired().HasDefaultValue(60);
-
         builder.Property(w => w.IsActive)
         .IsRequired().HasDefaultValue(true);
 

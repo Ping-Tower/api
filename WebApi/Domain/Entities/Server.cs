@@ -9,8 +9,10 @@ public class Server : BaseEntity
     public string? Host { get; set; }
     public string? UserId { get; set; }
     public int? Port { get; set; }
-    public int CheckIntervalSec { get; set; }
     public bool IsActive { get; set; }
-    public Protocol ProtocolRef { get; set; }
+    public Protocol Protocol { get; set; }
     public List<Request>? RequestsRefs { get; set; } 
+    public NotificationSettings? NotificationSettingsRef { get; set; }
+    public PingSettings? PingSettingsRef { get; set; }
+    public ServerState? ServerStateRef {get; set;}
 }

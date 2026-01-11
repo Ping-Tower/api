@@ -11,4 +11,5 @@ public class ApplicationUser : IdentityUser
     public string? UpdatedById { get; set; }
     public List<Server>? ServerRefs { get; init; }
     public List<Token>? TokenRefs { get; init; }
+    public TelegramAccount? TelegramAccountRef { get; init; }
 }
