@@ -19,6 +19,8 @@
     </PackageReference>
     <PackageReference Include="NpgSql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
+    <PackageReference Include="ClickHouse.Client" Version="7.5.0" />
+    <PackageReference Include="Dapper" Version="2.1.66" />
   </ItemGroup>
 
   <PropertyGroup>

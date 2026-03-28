@@ -242,4 +242,22 @@ public class IdentityService : IIdentityService
         return "if email exists code sent";
     }
 
+    public async Task<CurrentUserDto> GetCurrentUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+            throw new UnauthorizationException("User not found.");
+
+        var roles = await _userManager.GetRolesAsync(user);
+
+        return new CurrentUserDto
+        {
+            Id = user.Id,
+            Email = user.Email ?? string.Empty,
+            UserName = user.UserName ?? string.Empty,
+            Roles = roles
+        };
+    }
+
 }

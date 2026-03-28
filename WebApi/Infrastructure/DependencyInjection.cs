@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Infrastructure.IdentityManager.AspNetCoreIdentity;
 using Infrastructure.RabbitMqManager;
+using Infrastructure.ClickHouseManager;
 
 namespace Infrastructure;
 
@@ -22,6 +23,8 @@ public static class DependencyInjection
         services.AddTransient<IIdentityService, IdentityService>();
 
         services.ApplyRabbitMq(configuration);
+
+        services.ApplyClickHouse(configuration);
 
         return services;
     }

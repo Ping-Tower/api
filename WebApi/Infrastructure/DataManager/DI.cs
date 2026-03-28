@@ -21,6 +21,11 @@ public static class DI
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+        services.AddScoped<IServerRepository, ServerRepository>();
+        services.AddScoped<ISettingsRepository, SettingsRepository>();
+        services.AddScoped<IServerStateRepository, ServerStateRepository>();
+        services.AddScoped<ITelegramAccountRepository, TelegramAccountRepository>();
+
         return services;
     }
 }
