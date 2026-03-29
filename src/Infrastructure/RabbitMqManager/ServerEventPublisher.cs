@@ -19,16 +19,15 @@ public class ServerEventPublisher : IServerEventPublisher
     }
 
     public Task PublishServerAddedAsync(Server server, PingSettings pingSettings, CancellationToken cancellationToken) =>
-        PublishAsync("add", _rabbitMqSettings.ServerAddedRoutingKey, server, pingSettings, cancellationToken);
+        PublishAsync(_rabbitMqSettings.ServerAddedRoutingKey, server, pingSettings, cancellationToken);
 
     public Task PublishServerEditedAsync(Server server, PingSettings pingSettings, CancellationToken cancellationToken) =>
-        PublishAsync("edit", _rabbitMqSettings.ServerEditedRoutingKey, server, pingSettings, cancellationToken);
+        PublishAsync(_rabbitMqSettings.ServerUpdatedRoutingKey, server, pingSettings, cancellationToken);
 
     public Task PublishServerDeletedAsync(Server server, PingSettings pingSettings, CancellationToken cancellationToken) =>
-        PublishAsync("delete", _rabbitMqSettings.ServerDeletedRoutingKey, server, pingSettings, cancellationToken);
+        PublishAsync(_rabbitMqSettings.ServerDeletedRoutingKey, server, pingSettings, cancellationToken);
 
     private async Task PublishAsync(
-        string action,
         string routingKey,
         Server server,
         PingSettings pingSettings,
@@ -37,32 +36,33 @@ public class ServerEventPublisher : IServerEventPublisher
         await using var channel = await _rabbitMqProvider.Connection.CreateChannelAsync(
             new CreateChannelOptions(true, true), cancellationToken);
 
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new ServerEventMessage
-        {
-            Action = action,
-            Server = new ServerEventServerDto
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+            new ServerEventMessage
             {
-                Id = server.Id,
-                Name = server.Name,
-                Host = server.Host,
-                UserId = server.UserId,
-                Port = server.Port,
-                IsActive = server.IsActive,
-                Protocol = server.Protocol,
-                Status = server.Status,
-                IsDeleted = server.IsDeleted
+                Server = new ServerEventServerDto
+                {
+                    Id = server.Id,
+                    Name = server.Name,
+                    Host = server.Host,
+                    UserId = server.UserId,
+                    Port = server.Port,
+                    IsActive = server.IsActive,
+                    Protocol = server.Protocol,
+                    Status = server.Status,
+                    IsDeleted = server.IsDeleted
+                },
+                PingSettings = new ServerEventPingSettingsDto
+                {
+                    Id = pingSettings.Id,
+                    ServerId = pingSettings.ServerId,
+                    IntervalSec = pingSettings.IntervalSec,
+                    LatencyThresholdMs = pingSettings.LatencyThresholdMs,
+                    Retries = pingSettings.Retries,
+                    FailureThreshold = pingSettings.FailureThreshold,
+                    IsDeleted = pingSettings.IsDeleted
+                }
             },
-            PingSettings = new ServerEventPingSettingsDto
-            {
-                Id = pingSettings.Id,
-                ServerId = pingSettings.ServerId,
-                IntervalSec = pingSettings.IntervalSec,
-                LatencyThresholdMs = pingSettings.LatencyThresholdMs,
-                Retries = pingSettings.Retries,
-                FailureThreshold = pingSettings.FailureThreshold,
-                IsDeleted = pingSettings.IsDeleted
-            }
-        }));
+            RabbitMqJsonSerializer.Options));
 
         var props = new BasicProperties
         {

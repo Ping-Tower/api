@@ -9,7 +9,7 @@ public class RabbitMqSettings
     public string MainQueue { get; set; } = null!;
     public string ServerEventsExchange { get; set; } = null!;
     public string ServerAddedRoutingKey { get; set; } = null!;
-    public string ServerEditedRoutingKey { get; set; } = null!;
+    public string ServerUpdatedRoutingKey { get; set; } = null!;
     public string ServerDeletedRoutingKey { get; set; } = null!;
     public string ServerStatusChangedQueue { get; set; } = null!;
 }

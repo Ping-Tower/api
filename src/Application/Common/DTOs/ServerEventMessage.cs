@@ -4,7 +4,6 @@ namespace Application.Common.DTOs;
 
 public class ServerEventMessage
 {
-    public string Action { get; set; } = null!;
     public ServerEventServerDto Server { get; set; } = null!;
     public ServerEventPingSettingsDto PingSettings { get; set; } = null!;
 }

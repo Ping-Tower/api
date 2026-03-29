@@ -21,12 +21,14 @@ public class EmailPublisher : IEmailService
         await using var channel = await _rabbitMqProvider.Connection.CreateChannelAsync(
             new CreateChannelOptions(true, true), cancellationToken);
         
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new MessageDto
-        {
-            Email = email,
-            Subject = subject,
-            HtmlBody = htmlbody
-        }));
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+            new MessageDto
+            {
+                Email = email,
+                Subject = subject,
+                HtmlBody = htmlbody
+            },
+            RabbitMqJsonSerializer.Options));
 
         var props = new BasicProperties
         {
