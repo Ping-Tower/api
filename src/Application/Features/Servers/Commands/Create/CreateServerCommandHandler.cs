@@ -31,6 +31,7 @@ public class CreateServerCommandHandler : IRequestHandler<CreateServerCommand, s
             Id = Guid.NewGuid().ToString(),
             Name = request.Name,
             Host = request.Host,
+            Query = request.Query,
             Port = request.Port,
             Protocol = request.Protocol,
             UserId = _userContext.UserId,

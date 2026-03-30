@@ -44,6 +44,7 @@ public class ServerEventPublisher : IServerEventPublisher
                     Id = server.Id,
                     Name = server.Name,
                     Host = server.Host,
+                    Query = server.Query,
                     UserId = server.UserId,
                     Port = server.Port,
                     IsActive = server.IsActive,

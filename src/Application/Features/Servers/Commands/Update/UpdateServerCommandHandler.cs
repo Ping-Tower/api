@@ -33,6 +33,7 @@ public class UpdateServerCommandHandler : IRequestHandler<UpdateServerCommand, U
 
         server.Name = request.Name;
         server.Host = request.Host;
+        server.Query = request.Query;
         server.Port = request.Port;
         server.Protocol = request.Protocol;
 

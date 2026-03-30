@@ -19,6 +19,9 @@ public class ServerConfiguration : BaseEntityConfiguration<Server>
         builder.Property(w => w.Host)
         .IsRequired().HasMaxLength(255);
 
+        builder.Property(w => w.Query)
+        .IsRequired(false).HasMaxLength(255);
+
         builder.Property(w => w.Port)
         .IsRequired(false);
 

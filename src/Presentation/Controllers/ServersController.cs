@@ -47,7 +47,7 @@ public class ServersController : Presentation.Common.Base.BaseApiController
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateServerCommandBody body, CancellationToken ct)
     {
-        await _sender.Send(new UpdateServerCommand(id, body.Name, body.Host, body.Port, body.Protocol), ct);
+        await _sender.Send(new UpdateServerCommand(id, body.Name, body.Host, body.Query, body.Port, body.Protocol), ct);
         return NoContent();
     }
 
@@ -92,5 +92,5 @@ public class ServersController : Presentation.Common.Base.BaseApiController
     }
 }
 
-public record UpdateServerCommandBody(string Name, string Host, int Port, Protocol Protocol);
+public record UpdateServerCommandBody(string Name, string Host, string? Query, int Port, Protocol Protocol);
 public record UpdateSettingsBody(int? IntervalSec, int? LatencyThresholdMs, int? Retries, int? FailureThreshold);

@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Application.Features.Servers.Commands.Update;
 
-public record UpdateServerCommand(string Id, string Name, string Host, int Port, Protocol Protocol) : IRequest<Unit>, ICommand;
+public record UpdateServerCommand(string Id, string Name, string Host, string? Query, int Port, Protocol Protocol) : IRequest<Unit>, ICommand;

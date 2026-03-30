@@ -12,7 +12,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     { }
 
     public DbSet<Server> Servers { get; set; }
-    public DbSet<Request> Requests { get; set; }
     public DbSet<Token> Tokens { get; set; }
     public DbSet<NotificationSettings> NotificationSettings {get; set;}
     public DbSet<PingSettings> PingSettings {get; set;}
@@ -22,7 +21,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
-        builder.ApplyConfiguration(new RequestConfiguration());
         builder.ApplyConfiguration(new ServerConfiguration());
         builder.ApplyConfiguration(new TokenConfiguration());
         builder.ApplyConfiguration(new NotificationSettingsConfiguration());
