@@ -19,7 +19,7 @@ namespace Presentation.Controllers;
 
 [Route("api/servers")]
 [Authorize]
-public class ServersController : Presentation.Common.Base.BaseApiController
+public class ServersController : Common.Base.BaseApiController
 {
     public ServersController(ISender sender) : base(sender) { }
 
