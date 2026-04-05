@@ -5,7 +5,7 @@ using MediatR;
 
 namespace Application.Features.Servers.Commands.Create;
 
-public class CreateServerCommandHandler : IRequestHandler<CreateServerCommand, string>
+public class CreateServerCommandHandler : IRequestHandler<CreateServerCommand, Server>
 {
     private readonly IServerRepository _serverRepository;
     private readonly ISettingsRepository _settingsRepository;
@@ -24,7 +24,7 @@ public class CreateServerCommandHandler : IRequestHandler<CreateServerCommand, s
         _userContext = userContext;
     }
 
-    public async Task<string> Handle(CreateServerCommand request, CancellationToken cancellationToken)
+    public async Task<Server> Handle(CreateServerCommand request, CancellationToken cancellationToken)
     {
         var server = new Server
         {
@@ -54,6 +54,6 @@ public class CreateServerCommandHandler : IRequestHandler<CreateServerCommand, s
         await _settingsRepository.UpsertPingSettingsAsync(pingSettings, cancellationToken);
         await _serverEventPublisher.PublishServerAddedAsync(server, pingSettings, cancellationToken);
 
-        return server.Id;
+        return server;
     }
 }

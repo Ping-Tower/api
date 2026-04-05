@@ -1,9 +1,10 @@
+using Application.Common.DTOs;
 using Application.Common.Interfaces;
 using MediatR;
 
 namespace Application.Features.NotificationSettings.Commands.Patch;
 
-public class PatchNotificationSettingsCommandHandler : IRequestHandler<PatchNotificationSettingsCommand, Unit>
+public class PatchNotificationSettingsCommandHandler : IRequestHandler<PatchNotificationSettingsCommand, NotificationSettingsDto>
 {
     private readonly ISettingsRepository _settingsRepository;
     private readonly IUserContext _userContext;
@@ -16,7 +17,7 @@ public class PatchNotificationSettingsCommandHandler : IRequestHandler<PatchNoti
         _userContext = userContext;
     }
 
-    public async Task<Unit> Handle(PatchNotificationSettingsCommand request, CancellationToken cancellationToken)
+    public async Task<NotificationSettingsDto> Handle(PatchNotificationSettingsCommand request, CancellationToken cancellationToken)
     {
         var notification = await _settingsRepository.GetNotificationSettingsByUserIdAsync(_userContext.UserId!, cancellationToken)
             ?? new Domain.Entities.NotificationSettings
@@ -36,6 +37,13 @@ public class PatchNotificationSettingsCommandHandler : IRequestHandler<PatchNoti
 
         await _settingsRepository.UpsertNotificationSettingsAsync(notification, cancellationToken);
 
-        return Unit.Value;
+        return new NotificationSettingsDto
+        {
+            Id = notification.Id,
+            OnDown = notification.OnDown,
+            OnUp = notification.OnUp,
+            OnLatency = notification.OnLatency,
+            CooldownSec = notification.CooldownSec
+        };
     }
 }

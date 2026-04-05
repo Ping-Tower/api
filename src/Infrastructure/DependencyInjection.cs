@@ -6,7 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Infrastructure.IdentityManager.AspNetCoreIdentity;
 using Infrastructure.RabbitMqManager;
 using Infrastructure.ClickHouseManager;
-using Infrastructure.TelegramAuth;
+using Infrastructure.NotificationManager;
+using Infrastructure.RedisManager;
+using Infrastructure.TelegramManager;
 
 namespace Infrastructure;
 
@@ -26,10 +28,11 @@ public static class DependencyInjection
 
         services.ApplyClickHouse(configuration);
 
-        var telegramAuthSettings = configuration.GetSection("TelegramAuthSettings").Get<TelegramAuthSettings>()
-            ?? new TelegramAuthSettings();
-        services.AddSingleton(telegramAuthSettings);
-        services.AddSingleton<Application.Common.Interfaces.ITelegramLoginValidator, TelegramLoginValidator>();
+        services.ApplyRedis(configuration);
+
+        services.ApplyNotifications(configuration);
+
+        services.ApplyTelegram(configuration);
 
         return services;
     }

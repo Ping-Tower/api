@@ -1,10 +1,11 @@
+using Application.Common.DTOs;
 using Application.Common.Exceptions;
 using Application.Common.Interfaces;
 using MediatR;
 
 namespace Application.Features.Settings.Commands.Update;
 
-public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsCommand, Unit>
+public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsCommand, SettingsDto>
 {
     private readonly IServerRepository _serverRepository;
     private readonly ISettingsRepository _settingsRepository;
@@ -23,7 +24,7 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         _userContext = userContext;
     }
 
-    public async Task<Unit> Handle(UpdateSettingsCommand request, CancellationToken cancellationToken)
+    public async Task<SettingsDto> Handle(UpdateSettingsCommand request, CancellationToken cancellationToken)
     {
         var server = await _serverRepository.GetByIdAsync(request.ServerId, cancellationToken)
             ?? throw new NotFoundException($"Server {request.ServerId} not found.");
@@ -50,6 +51,26 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         await _settingsRepository.UpsertPingSettingsAsync(ping, cancellationToken);
         await _serverEventPublisher.PublishServerEditedAsync(server, ping, cancellationToken);
 
-        return Unit.Value;
+        var notification = await _settingsRepository.GetNotificationSettingsByUserIdAsync(_userContext.UserId!, cancellationToken);
+
+        return new SettingsDto
+        {
+            PingSettings = new PingSettingsDto
+            {
+                Id = ping.Id,
+                IntervalSec = ping.IntervalSec,
+                LatencyThresholdMs = ping.LatencyThresholdMs,
+                Retries = ping.Retries,
+                FailureThreshold = ping.FailureThreshold
+            },
+            NotificationSettings = notification == null ? null : new NotificationSettingsDto
+            {
+                Id = notification.Id,
+                OnDown = notification.OnDown,
+                OnUp = notification.OnUp,
+                OnLatency = notification.OnLatency,
+                CooldownSec = notification.CooldownSec
+            }
+        };
     }
 }

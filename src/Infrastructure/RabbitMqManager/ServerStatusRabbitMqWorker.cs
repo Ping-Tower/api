@@ -20,19 +20,16 @@ public class ServerStatusRabbitMqWorker : BackgroundService
     private readonly ILogger<ServerStatusRabbitMqWorker> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly RabbitMqSettings _rabbitMqSettings;
-    private readonly IServerStatusNotifier _serverStatusNotifier;
     private IConnection? _connection;
     private IChannel? _channel;
 
     public ServerStatusRabbitMqWorker(
         ILogger<ServerStatusRabbitMqWorker> logger,
         IServiceScopeFactory scopeFactory,
-        IServerStatusNotifier serverStatusNotifier,
         RabbitMqSettings rabbitMqSettings)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
-        _serverStatusNotifier = serverStatusNotifier;
         _rabbitMqSettings = rabbitMqSettings;
     }
 
@@ -75,9 +72,10 @@ public class ServerStatusRabbitMqWorker : BackgroundService
 
                         using var scope = _scopeFactory.CreateScope();
                         var serverRepository = scope.ServiceProvider.GetRequiredService<IServerRepository>();
+                        var serverStatusChangeProcessor = scope.ServiceProvider.GetRequiredService<IServerStatusChangeProcessor>();
                         var statusChanged = await serverRepository.UpdateStatusAsync(message.ServerId, message.Status, stoppingToken);
                         if (statusChanged)
-                            await _serverStatusNotifier.NotifyStatusChangedAsync(message.ServerId, message.Status, stoppingToken);
+                            await serverStatusChangeProcessor.ProcessAsync(message.ServerId, message.Status, stoppingToken);
 
                         _logger.LogInformation(
                             "Server status updated. ServerId: {ServerId}, Status: {Status}",

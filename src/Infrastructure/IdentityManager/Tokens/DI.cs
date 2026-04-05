@@ -11,26 +11,24 @@ public static class DI
 {
     public static IServiceCollection ApplyTokenManager(this IServiceCollection services, IConfiguration configuration)
     {
+        var tokenSettings = configuration.GetSection("JwtSettings").Get<TokenSettings>() ?? new TokenSettings();
+
         services.Configure<TokenSettings>(configuration.GetSection("JwtSettings"));
+        services.AddSingleton(tokenSettings);
 
         services.AddAuthentication(options => options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
-            var tokenSettings = configuration.GetSection("JwtSettings").Get<TokenSettings>();
-
-            if(tokenSettings == null)
-                throw new Exception("JwtSettings are missing!");
-
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = tokenSettings?.Issuer,
-                ValidAudience = tokenSettings?.Audience,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings?.SecretKey ?? throw new DomainException())),
-                ClockSkew = TimeSpan.FromMinutes(tokenSettings?.ExpireInMinute ?? 60)
+                ValidIssuer = tokenSettings.Issuer,
+                ValidAudience = tokenSettings.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSettings.SecretKey ?? throw new DomainException())),
+                ClockSkew = TimeSpan.FromMinutes(tokenSettings.ExpireInMinute)
             };
             options.Events = new JwtBearerEvents
             {

@@ -29,7 +29,7 @@ public class ServerConfiguration : BaseEntityConfiguration<Server>
         .IsRequired().HasDefaultValue(true);
 
         builder.Property(w => w.Status)
-        .IsRequired().HasDefaultValue(ServerStatus.UNKNOWN);
+        .IsRequired();
 
         builder.HasOne<ApplicationUser>()
         .WithMany(w => w.ServerRefs)

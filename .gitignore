@@ -21,8 +21,6 @@ packages/
 .idea/
 
 # ASP.NET / Secrets
-appsettings*.json
-!src/Presentation/appsettings.example.json
 secrets.json
 *.pfx
 *.key

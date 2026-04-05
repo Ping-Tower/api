@@ -27,28 +27,48 @@ public class ServersController : Common.Base.BaseApiController
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var result = await _sender.Send(new GetAllServersQuery(), ct);
-        return Ok(new ApiSuccessResult<List<Server>> { Data = result });
+        return Ok(new ApiSuccessResult<List<Server>>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetServerByIdQuery(id), ct);
-        return Ok(new ApiSuccessResult<Server> { Data = result });
+        return Ok(new ApiSuccessResult<Server>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateServerCommand command, CancellationToken ct)
     {
-        var id = await _sender.Send(command, ct);
-        return CreatedAtAction(nameof(GetById), new { id }, new ApiSuccessResult<string> { Data = id });
+        var result = await _sender.Send(command, ct);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, new ApiSuccessResult<Server>
+        {
+            Code = StatusCodes.Status201Created,
+            Message = "Created",
+            Data = result
+        });
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateServerCommandBody body, CancellationToken ct)
     {
-        await _sender.Send(new UpdateServerCommand(id, body.Name, body.Host, body.Query, body.Port, body.Protocol), ct);
-        return NoContent();
+        var result = await _sender.Send(new UpdateServerCommand(id, body.Name, body.Host, body.Query, body.Port, body.Protocol), ct);
+        return Ok(new ApiSuccessResult<Server>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpDelete("{id}")]
@@ -62,21 +82,36 @@ public class ServersController : Common.Base.BaseApiController
     public async Task<IActionResult> GetSettings(string id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetSettingsQuery(id), ct);
-        return Ok(new ApiSuccessResult<SettingsDto> { Data = result });
+        return Ok(new ApiSuccessResult<SettingsDto>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpPatch("{id}/settings")]
     public async Task<IActionResult> UpdateSettings(string id, [FromBody] UpdateSettingsBody body, CancellationToken ct)
     {
-        await _sender.Send(new UpdateSettingsCommand(id, body.IntervalSec, body.LatencyThresholdMs, body.Retries, body.FailureThreshold), ct);
-        return NoContent();
+        var result = await _sender.Send(new UpdateSettingsCommand(id, body.IntervalSec, body.LatencyThresholdMs, body.Retries, body.FailureThreshold), ct);
+        return Ok(new ApiSuccessResult<SettingsDto>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpGet("{id}/state")]
     public async Task<IActionResult> GetState(string id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetServerStateQuery(id), ct);
-        return Ok(new ApiSuccessResult<ServerStateDto> { Data = result });
+        return Ok(new ApiSuccessResult<ServerStateDto>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpGet("{id}/pings")]
@@ -88,7 +123,12 @@ public class ServersController : Common.Base.BaseApiController
         CancellationToken ct = default)
     {
         var result = await _sender.Send(new GetPingsQuery(id, from, to, limit), ct);
-        return Ok(new ApiSuccessResult<List<PingRecord>> { Data = result });
+        return Ok(new ApiSuccessResult<List<PingRecord>>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 }
 

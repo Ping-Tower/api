@@ -10,6 +10,9 @@ using Application.Common.Services.IdentityManager;
 using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
 using MediatR;
+using FluentValidation.Results;
+using Infrastructure.RedisManager;
+using StackExchange.Redis;
 
 namespace Infrastructure.IdentityManager.AspNetCoreIdentity;
 
@@ -21,7 +24,11 @@ public class IdentityService : IIdentityService
     private readonly AppDbContext _dbContext;
     private readonly TokenSettings _tokenSettings;
     private readonly IdentitySettings _identitySettings;
+    private readonly AuthLinkSettings _authLinkSettings;
+    private readonly AuthEmailRateLimitSettings _authEmailRateLimitSettings;
     private readonly IEmailService _emailService;
+    private readonly IDatabase _redisDatabase;
+    private readonly string _redisKeyPrefix;
     public IdentityService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -29,6 +36,10 @@ public class IdentityService : IIdentityService
         AppDbContext dbContext,
         TokenSettings tokenSettings,
         IdentitySettings identitySettings,
+        AuthLinkSettings authLinkSettings,
+        AuthEmailRateLimitSettings authEmailRateLimitSettings,
+        RedisSettings redisSettings,
+        IConnectionMultiplexer connectionMultiplexer,
         IEmailService emailService)
     {
         _userManager = userManager;
@@ -37,6 +48,10 @@ public class IdentityService : IIdentityService
         _dbContext = dbContext;
         _tokenSettings = tokenSettings;
         _identitySettings = identitySettings;
+        _authLinkSettings = authLinkSettings;
+        _authEmailRateLimitSettings = authEmailRateLimitSettings;
+        _redisKeyPrefix = redisSettings.KeyPrefix;
+        _redisDatabase = connectionMultiplexer.GetDatabase();
         _emailService = emailService;
     }
     public async Task<LoginResultDto> LoginAsync(string email, string password, CancellationToken cancellationToken)
@@ -99,7 +114,8 @@ public class IdentityService : IIdentityService
 
         if (!result.Succeeded)
         {
-            throw new UnauthorizedException(string.Join(",", result.Errors.Select(w => w.Description)));
+            throw new ValidationException(result.Errors.Select(error =>
+                new ValidationFailure(error.Code, error.Description)));
         }
 
         var roleResult = await _userManager.AddToRoleAsync(user, AppRoles.User);
@@ -113,9 +129,11 @@ public class IdentityService : IIdentityService
         {
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var encodedCode = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var welcomeStr = $"Dear {name}, Welcome to PingTower! Verification code: {encodedCode}";
-            var subject = "Registration on PingTower";
-            await _emailService.SendMessage(user.Email, subject, welcomeStr, cancellationToken);
+            await SendVerificationEmailAsync(
+                user.Email ?? email,
+                name,
+                encodedCode,
+                cancellationToken);
         }
 
         return new RegistrationResultDto
@@ -137,7 +155,7 @@ public class IdentityService : IIdentityService
         return;
     }
 
-    public async Task<Unit> VerifyEmail(string email, string code, CancellationToken cancellationToken)
+    public async Task<VerifyEmailResultDto> VerifyEmail(string email, string code, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(email);
 
@@ -159,34 +177,51 @@ public class IdentityService : IIdentityService
         if (!result.Succeeded)
             throw new UnauthorizedException("Invalid verification code.");
 
-        return Unit.Value;
+        return new VerifyEmailResultDto
+        {
+            Email = user.Email ?? email,
+            EmailConfirmed = user.EmailConfirmed
+        };
     }
 
-    public async Task<Unit> ForgotPassword(string email, CancellationToken cancellationToken)
+    public async Task<ForgotPasswordResultDto> ForgotPassword(string email, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(email);
 
         if (user is null)
-            return Unit.Value;
+        {
+            return new ForgotPasswordResultDto
+            {
+                Email = email,
+                ResetRequested = true
+            };
+        }
 
         if (_identitySettings.SignIn.RequireConfirmedEmail && !user.EmailConfirmed)
-            return Unit.Value;
+        {
+            return new ForgotPasswordResultDto
+            {
+                Email = email,
+                ResetRequested = true
+            };
+        }
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        await SendPasswordResetEmailAsync(
+            email,
+            user.UserName ?? email,
+            encodedToken,
+            cancellationToken);
 
-        var callbackUrl = $"https://pingtower.com/reset-password?email={email}&code={encodedToken}"; //FIX THIS!!!!!!
-
-        await _emailService.SendMessage(
-        email,
-        "Reset Password",
-        $"Reset your password by clicking <a href='{callbackUrl}'>here</a>",
-        cancellationToken);
-
-        return Unit.Value;
+        return new ForgotPasswordResultDto
+        {
+            Email = email,
+            ResetRequested = true
+        };
     }
 
-    public async Task<Unit> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken cancellationToken)
+    public async Task<ResetPasswordResultDto> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(email);
 
@@ -205,9 +240,14 @@ public class IdentityService : IIdentityService
         var result = await _userManager.ResetPasswordAsync(user, code, newPassword);
 
         if (!result.Succeeded)
-            throw new UnauthorizedException(string.Join(",", result.Errors.Select(w => w.Description)));
+            throw new ValidationException(result.Errors.Select(error =>
+                new ValidationFailure(error.Code, error.Description)));
 
-        return Unit.Value;
+        return new ResetPasswordResultDto
+        {
+            Email = user.Email ?? email,
+            PasswordReset = true
+        };
     }
 
     public async Task<RefreshResultDto> Refresh(string refreshToken, CancellationToken cancellationToken)
@@ -255,20 +295,32 @@ public class IdentityService : IIdentityService
         };
     }
 
-    public async Task<Unit> ResetVerifyEmailCode(string email, CancellationToken cancellationToken)
+    public async Task<ResendVerificationCodeResultDto> ResetVerifyEmailCode(string email, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(email);
 
         if(user is null)
-            return Unit.Value;
+        {
+            return new ResendVerificationCodeResultDto
+            {
+                Email = email,
+                VerificationCodeSent = true
+            };
+        }
 
         var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var encodedCode = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-        var welcomeStr = $"Dear {user.UserName}, Welcome to PingTower! Verification code: {encodedCode}";
-        var subject = "Registration on PingTower";
-        await _emailService.SendMessage(email, subject, welcomeStr, cancellationToken);
+        await SendVerificationEmailAsync(
+            email,
+            user.UserName ?? email,
+            encodedCode,
+            cancellationToken);
 
-        return Unit.Value;
+        return new ResendVerificationCodeResultDto
+        {
+            Email = email,
+            VerificationCodeSent = true
+        };
     }
 
     public async Task<CurrentUserDto> GetCurrentUserAsync(string userId, CancellationToken cancellationToken)
@@ -288,5 +340,92 @@ public class IdentityService : IIdentityService
             Roles = roles
         };
     }
+
+    private async Task SendVerificationEmailAsync(
+        string email,
+        string userName,
+        string encodedCode,
+        CancellationToken cancellationToken)
+    {
+        var key = RateLimitKey("verification-email", email);
+        var ttl = TimeSpan.FromSeconds(_authEmailRateLimitSettings.VerificationEmailCooldownSeconds);
+
+        await ExecuteRateLimitedEmailSendAsync(
+            key,
+            ttl,
+            "Verification email was requested too frequently. Please try again later.",
+            () => _emailService.SendMessageAsync(
+                email,
+                "registration-confirmation",
+                new Dictionary<string, string?>
+                {
+                    ["userName"] = userName,
+                    ["verificationCode"] = encodedCode,
+                    ["verificationUrl"] = _authLinkSettings.BuildVerifyEmailUrl(email, encodedCode)
+                },
+                cancellationToken));
+    }
+
+    private async Task SendPasswordResetEmailAsync(
+        string email,
+        string recipient,
+        string encodedToken,
+        CancellationToken cancellationToken)
+    {
+        var key = RateLimitKey("password-reset-email", email);
+        var ttl = TimeSpan.FromSeconds(_authEmailRateLimitSettings.PasswordResetEmailCooldownSeconds);
+
+        await ExecuteRateLimitedEmailSendAsync(
+            key,
+            ttl,
+            "Password reset email was requested too frequently. Please try again later.",
+            () => _emailService.SendMessageAsync(
+                email,
+                "password-reset",
+                new Dictionary<string, string?>
+                {
+                    ["recipient"] = recipient,
+                    ["resetUrl"] = _authLinkSettings.BuildResetPasswordUrl(email, encodedToken)
+                },
+                cancellationToken));
+    }
+
+    private async Task ExecuteRateLimitedEmailSendAsync(
+        string key,
+        TimeSpan ttl,
+        string errorMessage,
+        Func<Task> sendEmail)
+    {
+        if (ttl <= TimeSpan.Zero)
+        {
+            await sendEmail();
+            return;
+        }
+
+        var reserved = await _redisDatabase.StringSetAsync(
+            key,
+            DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            ttl,
+            when: When.NotExists);
+
+        if (!reserved)
+            throw new TooManyRequestsException(errorMessage);
+
+        try
+        {
+            await sendEmail();
+        }
+        catch
+        {
+            await _redisDatabase.KeyDeleteAsync(key);
+            throw;
+        }
+    }
+
+    private string RateLimitKey(string flow, string email) =>
+        $"{_redisKeyPrefix}:rate-limit:auth:{flow}:{NormalizeEmail(email)}";
+
+    private static string NormalizeEmail(string email) =>
+        email.Trim().ToLowerInvariant();
 
 }

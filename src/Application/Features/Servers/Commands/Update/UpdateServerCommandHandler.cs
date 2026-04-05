@@ -1,10 +1,11 @@
 using Application.Common.Exceptions;
 using Application.Common.Interfaces;
+using Domain.Entities;
 using MediatR;
 
 namespace Application.Features.Servers.Commands.Update;
 
-public class UpdateServerCommandHandler : IRequestHandler<UpdateServerCommand, Unit>
+public class UpdateServerCommandHandler : IRequestHandler<UpdateServerCommand, Server>
 {
     private readonly IServerRepository _serverRepository;
     private readonly ISettingsRepository _settingsRepository;
@@ -23,7 +24,7 @@ public class UpdateServerCommandHandler : IRequestHandler<UpdateServerCommand, U
         _userContext = userContext;
     }
 
-    public async Task<Unit> Handle(UpdateServerCommand request, CancellationToken cancellationToken)
+    public async Task<Server> Handle(UpdateServerCommand request, CancellationToken cancellationToken)
     {
         var server = await _serverRepository.GetByIdAsync(request.Id, cancellationToken)
             ?? throw new NotFoundException($"Server {request.Id} not found.");
@@ -42,6 +43,6 @@ public class UpdateServerCommandHandler : IRequestHandler<UpdateServerCommand, U
             ?? throw new NotFoundException($"Ping settings for server {server.Id} not found.");
         await _serverEventPublisher.PublishServerEditedAsync(server, pingSettings, cancellationToken);
 
-        return Unit.Value;
+        return server;
     }
 }

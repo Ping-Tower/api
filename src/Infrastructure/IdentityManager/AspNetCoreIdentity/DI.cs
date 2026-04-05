@@ -10,19 +10,23 @@ public static class DI
 {
     public static IServiceCollection ApplyIdentity(this IServiceCollection services, IConfiguration configuration)
     {
-        var sectionName = "AspNetIdentity";
+        var identitySectionName = "AspNetIdentity";
+        var authLinkSectionName = "AuthLinkSettings";
+        var authEmailRateLimitSectionName = "AuthEmailRateLimitSettings";
 
-        services.Configure<IdentitySettings>(configuration.GetSection(sectionName));
+        var identitySettings = configuration.GetSection(identitySectionName).Get<IdentitySettings>() ?? new IdentitySettings();
+        var authLinkSettings = configuration.GetSection(authLinkSectionName).Get<AuthLinkSettings>() ?? new AuthLinkSettings();
+        var authEmailRateLimitSettings = configuration.GetSection(authEmailRateLimitSectionName).Get<AuthEmailRateLimitSettings>() ?? new AuthEmailRateLimitSettings();
+
+        services.Configure<IdentitySettings>(configuration.GetSection(identitySectionName));
+        services.Configure<AuthLinkSettings>(configuration.GetSection(authLinkSectionName));
+        services.Configure<AuthEmailRateLimitSettings>(configuration.GetSection(authEmailRateLimitSectionName));
+        services.AddSingleton(identitySettings);
+        services.AddSingleton(authLinkSettings);
+        services.AddSingleton(authEmailRateLimitSettings);
 
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
-            var identitySettings = configuration.GetSection(sectionName).Get<IdentitySettings>();
-
-            if (identitySettings == null)
-            {
-                throw new Exception($"{identitySettings} section on settings is missing!");
-            }
-
             //Password
             options.Password.RequireDigit = identitySettings.Password.RequireDigit;
             options.Password.RequiredLength = identitySettings.Password.RequiredLength;
@@ -42,11 +46,8 @@ public static class DI
             options.SignIn.RequireConfirmedEmail = identitySettings.SignIn.RequireConfirmedEmail;
         })
         .AddEntityFrameworkStores<AppDbContext>()
-        .AddRoles<IdentityRole>();
-
-        
-
-
+        .AddRoles<IdentityRole>()
+        .AddDefaultTokenProviders();
 
         return services;
     }

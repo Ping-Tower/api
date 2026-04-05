@@ -1,0 +1,94 @@
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+  ConnectionStrings__Postgres: Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+  AspNetIdentity__Password__RequireDigit: ${ASPNETIDENTITY_PASSWORD_REQUIRE_DIGIT}
+  AspNetIdentity__Password__RequireLowercase: ${ASPNETIDENTITY_PASSWORD_REQUIRE_LOWERCASE}
+  AspNetIdentity__Password__RequireUppercase: ${ASPNETIDENTITY_PASSWORD_REQUIRE_UPPERCASE}
+  AspNetIdentity__Password__RequireNonAlphanumeric: ${ASPNETIDENTITY_PASSWORD_REQUIRE_NON_ALPHANUMERIC}
+  AspNetIdentity__Password__RequiredLength: ${ASPNETIDENTITY_PASSWORD_REQUIRED_LENGTH}
+  AspNetIdentity__Lockout__DefaultLockoutTimespanInMinutes: ${ASPNETIDENTITY_LOCKOUT_DEFAULT_TIMESPAN_MINUTES}
+  AspNetIdentity__Lockout__MaxFailedAccessAttempts: ${ASPNETIDENTITY_LOCKOUT_MAX_FAILED_ACCESS_ATTEMPTS}
+  AspNetIdentity__Lockout__AllowedForNewUsers: ${ASPNETIDENTITY_LOCKOUT_ALLOWED_FOR_NEW_USERS}
+  AspNetIdentity__User__RequireUniqueEmail: ${ASPNETIDENTITY_USER_REQUIRE_UNIQUE_EMAIL}
+  AspNetIdentity__SignIn__RequireConfirmedEmail: ${ASPNETIDENTITY_SIGNIN_REQUIRE_CONFIRMED_EMAIL}
+  JwtSettings__SecretKey: ${JWT_SECRET_KEY}
+  JwtSettings__Audience: ${JWT_AUDIENCE}
+  JwtSettings__Issuer: ${JWT_ISSUER}
+  JwtSettings__ExpireInMinute: ${JWT_EXPIRE_IN_MINUTE}
+  JwtSettings__RefreshTokenExpireInDays: ${JWT_REFRESH_TOKEN_EXPIRE_IN_DAYS}
+  TelegramAuthSettings__BotToken: ${TELEGRAM_BOT_TOKEN}
+  TelegramAuthSettings__AuthLifetimeMinutes: ${TELEGRAM_AUTH_LIFETIME_MINUTES}
+  AuthLinkSettings__WebAppUrl: ${AUTH_WEB_APP_URL}
+  AuthLinkSettings__VerifyEmailPathTemplate: ${AUTH_VERIFY_EMAIL_PATH_TEMPLATE}
+  AuthLinkSettings__ResetPasswordPathTemplate: ${AUTH_RESET_PASSWORD_PATH_TEMPLATE}
+  AuthEmailRateLimitSettings__VerificationEmailCooldownSeconds: ${AUTH_VERIFICATION_EMAIL_COOLDOWN_SECONDS}
+  AuthEmailRateLimitSettings__PasswordResetEmailCooldownSeconds: ${AUTH_PASSWORD_RESET_EMAIL_COOLDOWN_SECONDS}
+  ClickHouseSettings__ConnectionString: Host=${CLICKHOUSE_HOST};Protocol=http;Port=${CLICKHOUSE_PORT};Username=${CLICKHOUSE_USER};Password=${CLICKHOUSE_PASSWORD};Database=${CLICKHOUSE_DB}
+  RabbitMqSettings__HostName: ${RABBITMQ_HOST}
+  RabbitMqSettings__Port: ${RABBITMQ_PORT}
+  RabbitMqSettings__UserName: ${RABBITMQ_USER}
+  RabbitMqSettings__Password: ${RABBITMQ_PASSWORD}
+  RabbitMqSettings__MainQueue: ${RABBITMQ_MAIN_QUEUE}
+  RabbitMqSettings__TelegramQueue: ${RABBITMQ_TELEGRAM_QUEUE}
+  RabbitMqSettings__ServerEventsExchange: ${RABBITMQ_SERVER_EVENTS_EXCHANGE}
+  RabbitMqSettings__ServerAddedRoutingKey: ${RABBITMQ_SERVER_ADDED_ROUTING_KEY}
+  RabbitMqSettings__ServerUpdatedRoutingKey: ${RABBITMQ_SERVER_UPDATED_ROUTING_KEY}
+  RabbitMqSettings__ServerDeletedRoutingKey: ${RABBITMQ_SERVER_DELETED_ROUTING_KEY}
+  RabbitMqSettings__ServerStatusChangedQueue: ${RABBITMQ_SERVER_STATUS_CHANGED_QUEUE}
+  RedisSettings__Configuration: ${REDIS_HOST}:${REDIS_PORT},password=${REDIS_PASSWORD}
+  RedisSettings__KeyPrefix: ${REDIS_KEY_PREFIX}
+  AppLinksSettings__WebAppUrl: ${APP_WEB_URL}
+  AppLinksSettings__ServerPathTemplate: ${APP_SERVER_PATH_TEMPLATE}
+  AppLinksSettings__TelegramDashboardButtonText: ${APP_TELEGRAM_DASHBOARD_BUTTON_TEXT}
+
+services:
+  api:
+    container_name: pingtower-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pingtower-api:local
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${API_PORT}:8080"
+    environment:
+      <<: *api-environment
+      ASPNETCORE_URLS: http://+:8080
+    networks:
+      - pingtower_network
+
+  migrator:
+    container_name: pingtower-api-migrator
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    image: pingtower-api-migrator:local
+    profiles:
+      - tools
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      <<: *api-environment
+    command:
+      - dotnet
+      - ef
+      - database
+      - update
+      - --project
+      - /src/src/Infrastructure/Infrastructure.csproj
+      - --startup-project
+      - /src/src/Presentation/Presentation.csproj
+      - --configuration
+      - Release
+      - --no-build
+    networks:
+      - pingtower_network
+
+networks:
+  pingtower_network:
+    name: pingtower_network
+    external: true

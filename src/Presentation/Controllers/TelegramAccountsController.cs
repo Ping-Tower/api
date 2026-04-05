@@ -19,14 +19,24 @@ public class TelegramAccountsController : Presentation.Common.Base.BaseApiContro
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var result = await _sender.Send(new GetAllTelegramAccountsQuery(), ct);
-        return Ok(new ApiSuccessResult<List<TelegramAccount>> { Data = result });
+        return Ok(new ApiSuccessResult<List<TelegramAccount>>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTelegramAccountCommand command, CancellationToken ct)
     {
-        var id = await _sender.Send(command, ct);
-        return Ok(new ApiSuccessResult<string> { Data = id });
+        var result = await _sender.Send(command, ct);
+        return Ok(new ApiSuccessResult<TelegramAccount>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
     }
 
     [HttpDelete("{id}")]

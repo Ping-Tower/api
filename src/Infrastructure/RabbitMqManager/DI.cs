@@ -1,10 +1,6 @@
-using System.ComponentModel;
-using System.Xml.Schema;
 using Application.Common.Interfaces;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Npgsql.Replication;
 using RabbitMQ.Client;
 using Infrastructure.EmailManager;
 
@@ -16,6 +12,9 @@ public static class DI
     {
         var sectionName = "RabbitMqSettings";
         services.Configure<RabbitMqSettings>(configuration.GetSection(sectionName));
+        var rabbitMqSettings = configuration.GetSection(sectionName).Get<RabbitMqSettings>()
+            ?? new RabbitMqSettings();
+        services.AddSingleton(rabbitMqSettings);
 
         services.AddSingleton<RabbitMqHostedService>();
         services.AddSingleton<IRabbitMqProvider>(sp => sp.GetRequiredService<RabbitMqHostedService>());
@@ -24,6 +23,28 @@ public static class DI
 
         services.AddSingleton<IEmailService, EmailPublisher>();
         services.AddSingleton<IServerEventPublisher, ServerEventPublisher>();
+        services.AddHealthChecks()
+            .AddAsyncCheck(
+                name: "RabbitMQ Broker",
+                check: async cancellationToken =>
+                {
+                    var factory = new ConnectionFactory
+                    {
+                        HostName = rabbitMqSettings.HostName ?? throw new InvalidOperationException("RabbitMQ host is missing."),
+                        Port = rabbitMqSettings.Port,
+                        UserName = rabbitMqSettings.UserName ?? throw new InvalidOperationException("RabbitMQ username is missing."),
+                        Password = rabbitMqSettings.Password ?? throw new InvalidOperationException("RabbitMQ password is missing.")
+                    };
+
+                    await using var connection = await factory.CreateConnectionAsync(cancellationToken);
+                    await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
+
+                    return connection.IsOpen && !channel.IsClosed
+                        ? Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy()
+                        : Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Unhealthy("RabbitMQ connection or channel is closed.");
+                },
+                tags: ["broker", "ready"],
+                timeout: TimeSpan.FromSeconds(3));
 
         return services;
     }

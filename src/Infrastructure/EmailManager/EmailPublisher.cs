@@ -16,17 +16,22 @@ public class EmailPublisher : IEmailService
         _rabbitMqProvider = rabbitMqProvider;
         _rabbitMqSettings = rabbitMqSettings;
     }
-    public async Task SendMessage(string email, string subject, string htmlbody,  CancellationToken cancellationToken)
+
+    public async Task SendMessageAsync(
+        string email,
+        string templateId,
+        IReadOnlyDictionary<string, string?> data,
+        CancellationToken cancellationToken)
     {
         await using var channel = await _rabbitMqProvider.Connection.CreateChannelAsync(
             new CreateChannelOptions(true, true), cancellationToken);
-        
+
         var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
             new MessageDto
             {
                 Email = email,
-                Subject = subject,
-                HtmlBody = htmlbody
+                TemplateId = templateId,
+                Data = new Dictionary<string, string?>(data)
             },
             RabbitMqJsonSerializer.Options));
 

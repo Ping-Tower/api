@@ -24,6 +24,15 @@ public static class DI
         services.AddScoped<IServerRepository, ServerRepository>();
         services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddScoped<ITelegramAccountRepository, TelegramAccountRepository>();
+        services.AddScoped<INotificationContextRepository, NotificationContextRepository>();
+
+        services.AddHealthChecks()
+            .AddNpgSql(
+                connectionString: connectionString,
+                name: "PostgreSQL Database",
+                healthQuery: "SELECT 1;",
+                tags: ["db", "ready"],
+                timeout: TimeSpan.FromSeconds(3));
 
         return services;
     }

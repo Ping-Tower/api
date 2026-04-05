@@ -1,4 +1,5 @@
 using Application.Common.CQRS;
+using Application.Common.DTOs;
 using MediatR;
 
 namespace Application.Features.Settings.Commands.Update;
@@ -8,4 +9,4 @@ public record UpdateSettingsCommand(
     int? IntervalSec,
     int? LatencyThresholdMs,
     int? Retries,
-    int? FailureThreshold) : IRequest<Unit>, ICommand;
+    int? FailureThreshold) : IRequest<SettingsDto>, ICommand;

@@ -1,4 +1,5 @@
 using Application.Common.CQRS;
+using Domain.Entities;
 using MediatR;
 using System.Text.Json.Serialization;
 
@@ -11,4 +12,4 @@ public record CreateTelegramAccountCommand(
     [property: JsonPropertyName("photo_url")] string? PhotoUrl,
     [property: JsonPropertyName("auth_date")] long AuthDate,
     [property: JsonPropertyName("hash")]
-    string Hash) : IRequest<string>, ICommand;
+    string Hash) : IRequest<TelegramAccount>, ICommand;

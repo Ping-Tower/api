@@ -39,6 +39,18 @@ public static class GlobalExceptionHandler
                         Status = Status404NotFound,
                         Detail = e.Message
                     },
+                    Application.Common.Exceptions.UnauthorizedException e => new ProblemDetails
+                    {
+                        Title = "Unauthorized",
+                        Status = Status401Unauthorized,
+                        Detail = e.Message
+                    },
+                    Application.Common.Exceptions.TooManyRequestsException e => new ProblemDetails
+                    {
+                        Title = "Too Many Requests",
+                        Status = Status429TooManyRequests,
+                        Detail = e.Message
+                    },
                     _ => new ProblemDetails
                     {
                         Title = "Internal Server Error",

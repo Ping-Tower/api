@@ -2,5 +2,9 @@ namespace  Application.Common.Interfaces;
 
 public interface IEmailService
 {
-    Task SendMessage(string email, string subject, string htmlbody, CancellationToken cancellationToken);
+    Task SendMessageAsync(
+        string email,
+        string templateId,
+        IReadOnlyDictionary<string, string?> data,
+        CancellationToken cancellationToken);
 }

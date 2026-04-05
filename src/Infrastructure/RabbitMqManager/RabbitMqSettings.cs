@@ -7,6 +7,7 @@ public class RabbitMqSettings
     public string? UserName { get; set; }
     public string? Password { get; set; }
     public string MainQueue { get; set; } = null!;
+    public string TelegramQueue { get; set; } = null!;
     public string ServerEventsExchange { get; set; } = null!;
     public string ServerAddedRoutingKey { get; set; } = null!;
     public string ServerUpdatedRoutingKey { get; set; } = null!;
