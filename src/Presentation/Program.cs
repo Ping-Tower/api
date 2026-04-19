@@ -70,7 +70,11 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddPresentation();
@@ -85,7 +89,6 @@ app.UseSerilogRequestLogging();
 
 app.UseGlobalExceptionHandler();
 
-app.UseHttpsRedirection();
 app.UseCors("DefaultCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();

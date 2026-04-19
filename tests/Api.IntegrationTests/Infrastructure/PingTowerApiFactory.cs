@@ -17,7 +17,8 @@ public sealed class PingTowerApiFactory : WebApplicationFactory<Program>
 {
     private static readonly IReadOnlyDictionary<string, string?> TestConfiguration = new Dictionary<string, string?>
     {
-        ["ConnectionStrings:Postgres"] = "Host=localhost;Port=5432;Database=pingtower_test;Username=postgres;Password=test",
+        ["ConnectionStrings:Postgres"] = Environment.GetEnvironmentVariable("TEST_POSTGRES_CONNECTION_STRING")
+            ?? "Host=localhost;Port=5432;Database=pingtower_test;Username=postgres;Password=test",
         ["AspNetIdentity:Password:RequireDigit"] = "true",
         ["AspNetIdentity:Password:RequireLowercase"] = "true",
         ["AspNetIdentity:Password:RequireUppercase"] = "true",
@@ -121,7 +122,7 @@ public sealed class PingTowerApiFactory : WebApplicationFactory<Program>
         public Task<RegistrationResultDto> RegistrationAsync(string email, string password, string name, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task LogoutAsync(string refreshToken, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<RefreshResultDto> Refresh(string refreshToken, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<VerifyEmailResultDto> VerifyEmail(string email, string code, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<LoginResultDto> VerifyEmail(string email, string code, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<ForgotPasswordResultDto> ForgotPassword(string email, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<ResetPasswordResultDto> ResetPasswordAsync(string email, string code, string newPassword, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<ResendVerificationCodeResultDto> ResetVerifyEmailCode(string email, CancellationToken cancellationToken) => throw new NotSupportedException();

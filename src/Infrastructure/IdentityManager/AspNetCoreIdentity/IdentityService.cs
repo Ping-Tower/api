@@ -78,6 +78,7 @@ public class IdentityService : IIdentityService
 
         await _dbContext.Tokens.AddAsync(new Token
         {
+            Id = Guid.NewGuid().ToString(),
             UserId = user.Id,
             RefreshToken = refreshToken,
             Expire = DateTime.UtcNow.AddDays(_tokenSettings.RefreshTokenExpireInDays)
@@ -155,7 +156,7 @@ public class IdentityService : IIdentityService
         return;
     }
 
-    public async Task<VerifyEmailResultDto> VerifyEmail(string email, string code, CancellationToken cancellationToken)
+    public async Task<LoginResultDto> VerifyEmail(string email, string code, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByEmailAsync(email);
 
@@ -177,10 +178,26 @@ public class IdentityService : IIdentityService
         if (!result.Succeeded)
             throw new UnauthorizedException("Invalid verification code.");
 
-        return new VerifyEmailResultDto
+        var (jwtToken, expire) = await _tokenService.GenerateJwtTokenAsync(user, cancellationToken);
+        var refreshToken = _tokenService.GetRefreshToken();
+
+        await _dbContext.Tokens.AddAsync(new Token
         {
-            Email = user.Email ?? email,
-            EmailConfirmed = user.EmailConfirmed
+            Id = Guid.NewGuid().ToString(),
+            UserId = user.Id,
+            RefreshToken = refreshToken,
+            Expire = DateTime.UtcNow.AddDays(_tokenSettings.RefreshTokenExpireInDays)
+        }, cancellationToken);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new LoginResultDto
+        {
+            UserName = user.UserName ?? string.Empty,
+            UserId = user.Id,
+            Token = jwtToken,
+            RefreshToken = refreshToken,
+            Expiration = expire
         };
     }
 
@@ -278,6 +295,7 @@ public class IdentityService : IIdentityService
 
         await _dbContext.Tokens.AddAsync(new Token
         {
+            Id = Guid.NewGuid().ToString(),
             RefreshToken = newRefreshToken,
             UserId = user.Id,
             Expire = DateTime.UtcNow.AddDays(_tokenSettings.RefreshTokenExpireInDays)

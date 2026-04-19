@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Application.Features.Servers.Queries.GetAll;
 
-public record GetAllServersQuery() : IRequest<List<Server>>, IQuery;
+public record GetAllServersQuery(string? Search = null) : IRequest<List<Server>>, IQuery;

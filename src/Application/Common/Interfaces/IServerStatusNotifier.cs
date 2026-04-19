@@ -4,5 +4,5 @@ namespace Application.Common.Interfaces;
 
 public interface IServerStatusNotifier
 {
-    Task NotifyStatusChangedAsync(string serverId, ServerStatus status, CancellationToken cancellationToken);
+    Task NotifyStatusChangedAsync(string userId, string serverId, ServerStatus status, CancellationToken cancellationToken);
 }

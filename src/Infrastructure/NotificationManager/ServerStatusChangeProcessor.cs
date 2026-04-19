@@ -36,17 +36,17 @@ public class ServerStatusChangeProcessor : IServerStatusChangeProcessor
 
     public async Task ProcessAsync(string serverId, ServerStatus status, CancellationToken cancellationToken)
     {
-        await _serverStatusNotifier.NotifyStatusChangedAsync(serverId, status, cancellationToken);
-
-        if (status is not (ServerStatus.DOWN or ServerStatus.UP))
-            return;
-
         var context = await _notificationContextRepository.GetServerNotificationContextAsync(serverId, cancellationToken);
         if (context is null)
         {
             _logger.LogWarning("Notification context not found. ServerId: {ServerId}, Status: {Status}", serverId, status);
             return;
         }
+
+        await _serverStatusNotifier.NotifyStatusChangedAsync(context.UserId, serverId, status, cancellationToken);
+
+        if (status is not (ServerStatus.DOWN or ServerStatus.UP))
+            return;
 
         if (!ShouldSendForStatus(context, status))
             return;

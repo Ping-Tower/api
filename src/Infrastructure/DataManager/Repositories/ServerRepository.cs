@@ -15,10 +15,11 @@ public class ServerRepository : IServerRepository
         _dbContext = dbContext;
     }
 
-    public async Task<List<Server>> GetAllByUserIdAsync(string userId, CancellationToken cancellationToken)
+    public async Task<List<Server>> GetAllByUserIdAsync(string userId, string? search, CancellationToken cancellationToken)
     {
         return await _dbContext.Servers
             .Where(s => s.UserId == userId && !s.IsDeleted)
+            .Where(s => search == null || s.Name.Contains(search))
             .ToListAsync(cancellationToken);
     }
 

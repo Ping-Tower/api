@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Application.Features.Auth.Commands.VerifyEmail;
 
-public record VerifyEmailCommand(string Email, string Code) : IRequest<VerifyEmailResultDto>, ICommand;
+public record VerifyEmailCommand(string Email, string Code) : IRequest<LoginResultDto>, ICommand;

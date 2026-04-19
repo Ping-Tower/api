@@ -1,0 +1,93 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  DOCKER_MIGRATOR_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-migrator
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+unit_tests:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:10.0
+  script:
+    - dotnet test tests/Api.UnitTests/Api.UnitTests.csproj
+        -c Release
+        --logger "junit;LogFilePath=$CI_PROJECT_DIR/test-results/unit.xml"
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/unit.xml
+
+integration_tests:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:10.0
+  services:
+    - name: postgres:17-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: pingtower_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: test
+    POSTGRES_HOST_AUTH_METHOD: trust
+    TEST_POSTGRES_CONNECTION_STRING: "Host=postgres;Port=5432;Database=pingtower_test;Username=postgres;Password=test"
+  script:
+    - dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj
+        -c Release
+        --logger "junit;LogFilePath=$CI_PROJECT_DIR/test-results/integration.xml"
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/integration.xml
+
+build_image:
+  stage: build
+  image: docker:27.5.0
+  services:
+    - docker:27.5.0-dind
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_DEPTH: 1
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build --pull -t $DOCKER_IMAGE_NAME .
+    - docker build -t $DOCKER_MIGRATOR_IMAGE --target migrator .
+    - docker push $DOCKER_IMAGE_NAME
+    - docker push $DOCKER_MIGRATOR_IMAGE
+  only:
+    - main
+    - stage
+
+.deploy_template:
+  stage: deploy
+  image: docker:27.5.0
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | base64 -d | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n\tPort $TARGET_PORT" > ~/.ssh/config
+    - docker context create remote-target --docker "host=ssh://$TARGET_USER@$TARGET_HOST"
+  script:
+    - cp $TARGET_ENV_FILE .env
+    - DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME
+      DOCKER_MIGRATOR_IMAGE=$DOCKER_MIGRATOR_IMAGE
+      docker --context remote-target compose --profile tools run --rm migrator
+    - DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME
+      docker --context remote-target compose up -d --remove-orphans
+    - docker --context remote-target image prune -f
+
+deploy_prod:
+  extends: .deploy_template
+  needs: [build_image]
+  variables:
+    TARGET_PORT: $SSH_PORT_PROD
+    TARGET_HOST: $SSH_HOST_PROD
+    TARGET_USER: $SSH_USER_PROD
+    TARGET_ENV_FILE: $PROD_ENV_FILE
+  environment:
+    name: production
+  only:
+    - main

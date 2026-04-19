@@ -14,17 +14,19 @@ public class ServerStatusNotifier : IServerStatusNotifier
         _hubContext = hubContext;
     }
 
-    public Task NotifyStatusChangedAsync(string serverId, ServerStatus status, CancellationToken cancellationToken)
+    public Task NotifyStatusChangedAsync(string userId, string serverId, ServerStatus status, CancellationToken cancellationToken)
     {
+        var message = new ServerStatusChangedHubMessage
+        {
+            ServerId = serverId,
+            Status = status
+        };
+
         return _hubContext.Clients
-            .Group(MonitoringHubGroups.Server(serverId))
+            .User(userId)
             .SendAsync(
                 MonitoringHubEvents.ServerStatusChanged,
-                new ServerStatusChangedHubMessage
-                {
-                    ServerId = serverId,
-                    Status = status
-                },
+                message,
                 cancellationToken);
     }
 }

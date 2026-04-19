@@ -50,6 +50,7 @@ public class ServerStatusChangeProcessorTests
         await processor.ProcessAsync("server-1", ServerStatus.DOWN, CancellationToken.None);
 
         var notifiedStatus = Assert.Single(statusNotifier.Calls);
+        Assert.Equal("user-1", notifiedStatus.UserId);
         Assert.Equal("server-1", notifiedStatus.ServerId);
         Assert.Equal(ServerStatus.DOWN, notifiedStatus.Status);
 
@@ -120,6 +121,7 @@ public class ServerStatusChangeProcessorTests
         await processor.ProcessAsync("server-1", ServerStatus.DOWN, CancellationToken.None);
 
         var notifiedStatus = Assert.Single(statusNotifier.Calls);
+        Assert.Equal("user-1", notifiedStatus.UserId);
         Assert.Equal("server-1", notifiedStatus.ServerId);
         Assert.Equal(ServerStatus.DOWN, notifiedStatus.Status);
         Assert.Empty(emailService.Messages);
@@ -181,9 +183,9 @@ public class ServerStatusChangeProcessorTests
     {
         public List<StatusNotification> Calls { get; } = [];
 
-        public Task NotifyStatusChangedAsync(string serverId, ServerStatus status, CancellationToken cancellationToken)
+        public Task NotifyStatusChangedAsync(string userId, string serverId, ServerStatus status, CancellationToken cancellationToken)
         {
-            Calls.Add(new StatusNotification(serverId, status));
+            Calls.Add(new StatusNotification(userId, serverId, status));
             return Task.CompletedTask;
         }
     }
@@ -194,5 +196,5 @@ public class ServerStatusChangeProcessorTests
         long ChatId,
         string Text,
         IReadOnlyList<IReadOnlyList<TelegramInlineButtonDto>>? InlineButtons);
-    private sealed record StatusNotification(string ServerId, ServerStatus Status);
+    private sealed record StatusNotification(string UserId, string ServerId, ServerStatus Status);
 }

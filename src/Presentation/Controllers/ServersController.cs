@@ -1,5 +1,7 @@
 using Application.Common.DTOs;
 using Application.Features.Pings.Queries.GetPings;
+using Application.Features.Pings.Queries.GetUptimeStats;
+using Application.Features.Servers.Queries.GetMonitoringOverview;
 using Application.Features.Servers.Commands.Create;
 using Application.Features.Servers.Commands.Delete;
 using Application.Features.Servers.Commands.Update;
@@ -24,14 +26,14 @@ public class ServersController : Common.Base.BaseApiController
     public ServersController(ISender sender) : base(sender) { }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll(CancellationToken ct)
+    public async Task<IActionResult> GetAll([FromQuery] string? search, CancellationToken ct)
     {
-        var result = await _sender.Send(new GetAllServersQuery(), ct);
-        return Ok(new ApiSuccessResult<List<Server>>
+        var result = await _sender.Send(new GetAllServersQuery(search), ct);
+        return Ok(new ApiSuccessResult<List<ServerResponseDto>>
         {
             Code = StatusCodes.Status200OK,
             Message = "OK",
-            Data = result
+            Data = result.Select(ServerResponseDto.FromEntity).ToList()
         });
     }
 
@@ -39,11 +41,11 @@ public class ServersController : Common.Base.BaseApiController
     public async Task<IActionResult> GetById(string id, CancellationToken ct)
     {
         var result = await _sender.Send(new GetServerByIdQuery(id), ct);
-        return Ok(new ApiSuccessResult<Server>
+        return Ok(new ApiSuccessResult<ServerResponseDto>
         {
             Code = StatusCodes.Status200OK,
             Message = "OK",
-            Data = result
+            Data = ServerResponseDto.FromEntity(result)
         });
     }
 
@@ -51,11 +53,11 @@ public class ServersController : Common.Base.BaseApiController
     public async Task<IActionResult> Create([FromBody] CreateServerCommand command, CancellationToken ct)
     {
         var result = await _sender.Send(command, ct);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, new ApiSuccessResult<Server>
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, new ApiSuccessResult<ServerResponseDto>
         {
             Code = StatusCodes.Status201Created,
             Message = "Created",
-            Data = result
+            Data = ServerResponseDto.FromEntity(result)
         });
     }
 
@@ -63,11 +65,11 @@ public class ServersController : Common.Base.BaseApiController
     public async Task<IActionResult> Update(string id, [FromBody] UpdateServerCommandBody body, CancellationToken ct)
     {
         var result = await _sender.Send(new UpdateServerCommand(id, body.Name, body.Host, body.Query, body.Port, body.Protocol), ct);
-        return Ok(new ApiSuccessResult<Server>
+        return Ok(new ApiSuccessResult<ServerResponseDto>
         {
             Code = StatusCodes.Status200OK,
             Message = "OK",
-            Data = result
+            Data = ServerResponseDto.FromEntity(result)
         });
     }
 
@@ -114,6 +116,48 @@ public class ServersController : Common.Base.BaseApiController
         });
     }
 
+    [HttpGet("{id}/uptime")]
+    public async Task<IActionResult> GetUptimeStats(
+        string id,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        CancellationToken ct = default)
+    {
+        var resolvedTo = to ?? DateTime.UtcNow;
+        var resolvedFrom = from ?? resolvedTo.AddHours(-24);
+        var result = await _sender.Send(new GetUptimeStatsQuery(id, resolvedFrom, resolvedTo), ct);
+        return Ok(new ApiSuccessResult<UptimeStatsDto>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
+    }
+
+    [HttpGet("{id}/overview")]
+    public async Task<IActionResult> GetMonitoringOverview(
+        string id,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] int? bucketSec,
+        CancellationToken ct = default)
+    {
+        var resolvedTo = to ?? DateTime.UtcNow;
+        var resolvedFrom = from ?? resolvedTo.AddHours(-24);
+        var resolvedBucketSec = bucketSec ?? ResolveBucketSizeSec(resolvedFrom, resolvedTo);
+
+        var result = await _sender.Send(
+            new GetServerMonitoringOverviewQuery(id, resolvedFrom, resolvedTo, resolvedBucketSec),
+            ct);
+
+        return Ok(new ApiSuccessResult<ServerMonitoringOverviewDto>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
+    }
+
     [HttpGet("{id}/pings")]
     public async Task<IActionResult> GetPings(
         string id,
@@ -129,6 +173,15 @@ public class ServersController : Common.Base.BaseApiController
             Message = "OK",
             Data = result
         });
+    }
+
+    private static int ResolveBucketSizeSec(DateTime from, DateTime to)
+    {
+        var range = to - from;
+        if (range <= TimeSpan.Zero)
+            return 1;
+
+        return Math.Clamp((int)Math.Ceiling(range.TotalSeconds / 120d), 1, 86400);
     }
 }
 

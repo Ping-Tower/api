@@ -2,6 +2,7 @@ using Application.Common.Services.IdentityManager;
 using Application.Common.DTOs;
 using Application.Features.Auth.Queries.GetMe;
 using Application.Features.NotificationSettings.Commands.Patch;
+using Application.Features.NotificationSettings.Queries.Get;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,18 @@ public class UsersController : Presentation.Common.Base.BaseApiController
     {
         var result = await _sender.Send(new GetMeQuery(), ct);
         return Ok(new ApiSuccessResult<CurrentUserDto>
+        {
+            Code = StatusCodes.Status200OK,
+            Message = "OK",
+            Data = result
+        });
+    }
+
+    [HttpGet("notification-settings")]
+    public async Task<IActionResult> GetNotificationSettings(CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetNotificationSettingsQuery(), ct);
+        return Ok(new ApiSuccessResult<NotificationSettingsDto>
         {
             Code = StatusCodes.Status200OK,
             Message = "OK",

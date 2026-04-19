@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Application.Features.Auth.Commands.VerifyEmail;
 
-public class VerifyEmailCommandHandler : IRequestHandler<VerifyEmailCommand, VerifyEmailResultDto>
+public class VerifyEmailCommandHandler : IRequestHandler<VerifyEmailCommand, LoginResultDto>
 {
     private readonly IIdentityService _identityService;
 
@@ -12,6 +12,6 @@ public class VerifyEmailCommandHandler : IRequestHandler<VerifyEmailCommand, Ver
         _identityService = identityService;
     }
 
-    public Task<VerifyEmailResultDto> Handle(VerifyEmailCommand request, CancellationToken cancellationToken) =>
+    public Task<LoginResultDto> Handle(VerifyEmailCommand request, CancellationToken cancellationToken) =>
         _identityService.VerifyEmail(request.Email, request.Code, cancellationToken);
 }

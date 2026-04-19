@@ -59,7 +59,7 @@ public class AuthController : Presentation.Common.Base.BaseApiController
     public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailCommand command, CancellationToken ct)
     {
         var result = await _sender.Send(command, ct);
-        return Ok(new ApiSuccessResult<VerifyEmailResultDto>
+        return Ok(new ApiSuccessResult<LoginResultDto>
         {
             Code = StatusCodes.Status200OK,
             Message = "OK",

@@ -18,12 +18,12 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
 
         try
         {
-            _logger.Log(LogLevel.Information, $"Start executing {name}, at {DateTime.UtcNow}");
+            _logger.LogInformation("Start executing {RequestName}, at {Timestamp}", name, DateTime.UtcNow);
             return await next();
         }
-        catch
+        catch (Exception ex)
         {
-            _logger.Log(LogLevel.Error, $"Error executing {name}, at {DateTime.UtcNow}");
+            _logger.LogError(ex, "Error executing {RequestName}, at {Timestamp}", name, DateTime.UtcNow);
             throw;
         }
     }

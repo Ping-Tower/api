@@ -17,6 +17,6 @@ public class GetAllServersQueryHandler : IRequestHandler<GetAllServersQuery, Lis
 
     public async Task<List<Server>> Handle(GetAllServersQuery request, CancellationToken cancellationToken)
     {
-        return await _serverRepository.GetAllByUserIdAsync(_userContext.UserId!, cancellationToken);
+        return await _serverRepository.GetAllByUserIdAsync(_userContext.UserId!, request.Search, cancellationToken);
     }
 }

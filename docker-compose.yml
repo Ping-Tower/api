@@ -35,11 +35,14 @@ x-api-environment: &api-environment
   RabbitMqSettings__ServerUpdatedRoutingKey: ${RABBITMQ_SERVER_UPDATED_ROUTING_KEY}
   RabbitMqSettings__ServerDeletedRoutingKey: ${RABBITMQ_SERVER_DELETED_ROUTING_KEY}
   RabbitMqSettings__ServerStatusChangedQueue: ${RABBITMQ_SERVER_STATUS_CHANGED_QUEUE}
-  RedisSettings__Configuration: ${REDIS_HOST}:${REDIS_PORT},password=${REDIS_PASSWORD}
+  RedisSettings__Configuration: ${REDIS_HOST}:${REDIS_PORT},password=${REDIS_PASSWORD},defaultDatabase=${REDIS_DATABASE}
   RedisSettings__KeyPrefix: ${REDIS_KEY_PREFIX}
   AppLinksSettings__WebAppUrl: ${APP_WEB_URL}
   AppLinksSettings__ServerPathTemplate: ${APP_SERVER_PATH_TEMPLATE}
   AppLinksSettings__TelegramDashboardButtonText: ${APP_TELEGRAM_DASHBOARD_BUTTON_TEXT}
+  Cors__AllowedOrigins__0: ${CORS_ALLOWED_ORIGIN_0}
+  Cors__AllowedOrigins__1: ${CORS_ALLOWED_ORIGIN_1}
+  Cors__AllowedOrigins__2: ${CORS_ALLOWED_ORIGIN_2}
 
 services:
   api:
@@ -47,7 +50,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: pingtower-api:local
+    image: ${DOCKER_IMAGE_NAME}
     restart: unless-stopped
     env_file:
       - .env
@@ -65,7 +68,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrator
-    image: pingtower-api-migrator:local
+    image: ${DOCKER_MIGRATOR_IMAGE}
     profiles:
       - tools
     restart: "no"
@@ -87,6 +90,8 @@ services:
       - --no-build
     networks:
       - pingtower_network
+    ports:
+      - "8080:8080"
 
 networks:
   pingtower_network:

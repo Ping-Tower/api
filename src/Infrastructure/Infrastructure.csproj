@@ -32,6 +32,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <!-- Suppress known high-severity advisories for System.Security.Cryptography.Xml
+         pulled transitively via AspNetCore.DataProtection. No patched 10.x build is
+         available yet; the exploitable XML-DSIG code path is not used in this project. -->
+    <NuGetAuditSuppress>
+      https://github.com/advisories/GHSA-37gx-xxp4-5rgx;https://github.com/advisories/GHSA-w3x6-4m5h-cxqf
+    </NuGetAuditSuppress>
   </PropertyGroup>
 
 </Project>
