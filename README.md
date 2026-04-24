@@ -1,7 +1,7 @@
 # Ping-Tower / API
 
 > Part of the **Ping-Tower** uptime monitoring system.
-> 📖 [Full project description and architecture →](https://github.com/Ping-Tower/.github/blob/main/profile/README.md)
+> 📖 [Full project description and architecture →](https://github.com/Ping-Tower)
 
 API gateway of the system. Accepts requests from the web client, manages server monitoring configuration, streams real-time status updates via WebSocket, and routes notification events to delivery workers.
 
