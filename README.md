@@ -1,30 +1,14 @@
-<div align="center">
+# PingTower API
 
-<a href="https://gitlab.com/pingtower"><img src="https://gitlab.com/uploads/-/system/group/avatar/121984904/logo-mark-avatar.png" width="72" alt="PingTower"></a>
+REST API, live status hub, authentication and notification routing for PingTower.
 
-# ⚙️ api
-
-### REST API, live status hub, authentication and notification routing for PingTower
-
-[![pipeline](https://gitlab.com/pingtower/api/badges/main/pipeline.svg)](https://gitlab.com/pingtower/api/-/pipelines)
-![C#](https://img.shields.io/badge/C%23_·_ASP.NET_Core_10-512BD4?logo=dotnet&logoColor=white)
-![SignalR](https://img.shields.io/badge/SignalR-512BD4?logo=dotnet&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-![ClickHouse](https://img.shields.io/badge/ClickHouse-FFCC01?logo=clickhouse&logoColor=black)
-![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?logo=rabbitmq&logoColor=white)
-![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
-
-<sub>Part of <a href="https://gitlab.com/pingtower"><b>PingTower</b></a> — real-time server availability monitoring</sub>
-
-</div>
-
----
+Stack: C#, ASP.NET Core 10, SignalR, PostgreSQL, ClickHouse, RabbitMQ, Redis.
 
 ## Role in the system
 
 The api is the only entry point for users and the owner of all configuration. It stores servers, ping
 settings and users in PostgreSQL, broadcasts every change to the monitoring pipeline, serves history from
-ClickHouse, and closes the loop: when [state-elevator](https://gitlab.com/pingtower/state-elevator) reports
+ClickHouse, and closes the loop: when `state-elevator` reports
 a status change, the api pushes it to the browser and fans it out to email and Telegram.
 
 ```mermaid
@@ -53,17 +37,17 @@ flowchart LR
 
 | Direction | Channel | Name | Payload |
 | --- | --- | --- | --- |
-| ⬅️ In | HTTP | `/api/auth`, `/api/servers`, `/api/users`, `/api/telegram-accounts` | REST, JWT bearer — see Swagger at `/swagger` |
-| ➡️ Out | SignalR | `/hubs/monitoring` → `server-status-changed` | `{ serverId, status }` |
-| ➡️ Out | exchange `serverEventsExchange` | `server.target.added` / `updated` / `deleted` | server + ping settings |
-| ⬅️ In | queue ← `statusEventsExchange` | `q.api.status-events` (`server.status.changed`) | `{ server_id, status }` |
-| ➡️ Out | work queue | `emailQueue` | `{ email, templateId, data }` |
-| ➡️ Out | work queue | `telegramQueue` | `{ chatId, text, inlineButtons }` |
-| 💾 Storage | PostgreSQL | `servers`, `ping_settings`, `users`, `tokens`, `telegram_accounts`, `notification_settings` | configuration |
-| 💾 Storage | ClickHouse (read) | `server_pings` | ping history |
-| 💾 Storage | Redis | `<prefix>:…` | notification cooldowns |
+| In | HTTP | `/api/auth`, `/api/servers`, `/api/users`, `/api/telegram-accounts` | REST, JWT bearer — see Swagger at `/swagger` |
+| Out | SignalR | `/hubs/monitoring` → `server-status-changed` | `{ serverId, status }` |
+| Out | exchange `serverEventsExchange` | `server.target.added` / `updated` / `deleted` | server + ping settings |
+| In | queue ← `statusEventsExchange` | `q.api.status-events` (`server.status.changed`) | `{ server_id, status }` |
+| Out | work queue | `emailQueue` | `{ email, templateId, data }` |
+| Out | work queue | `telegramQueue` | `{ chatId, text, inlineButtons }` |
+| Storage | PostgreSQL | `servers`, `ping_settings`, `users`, `tokens`, `telegram_accounts`, `notification_settings` | configuration |
+| Storage | ClickHouse (read) | `server_pings` | ping history |
+| Storage | Redis | `<prefix>:…` | notification cooldowns |
 
-Health check: `GET /health/live`. Full message schemas: [`infra/rabbitmq/asyncapi.yaml`](https://gitlab.com/pingtower/infra/-/blob/main/rabbitmq/asyncapi.yaml).
+Health check: `GET /health/live`. Full message schemas: `infra/rabbitmq/asyncapi.yaml`.
 
 ### Main endpoints
 
@@ -76,7 +60,7 @@ Health check: `GET /health/live`. Full message schemas: [`infra/rabbitmq/asyncap
 
 ## Quick start
 
-**Whole stack** — via [infra](https://gitlab.com/pingtower/infra) (all repos cloned side by side); this also runs the migrations:
+**Whole stack** — via `infra` (all repos cloned side by side); this also runs the migrations:
 
 ```bash
 make -C infra up
