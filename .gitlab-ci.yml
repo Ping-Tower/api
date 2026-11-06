@@ -3,12 +3,18 @@ stages:
   - build
   - deploy
 
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
 variables:
-  DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  DOCKER_MIGRATOR_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-migrator
+  DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+  DOCKER_MIGRATOR_IMAGE: $CI_REGISTRY_IMAGE/migrator:$CI_COMMIT_SHA
   DOTNET_NOLOGO: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
 
+# Note: unit/integration test jobs are kept as-is from the repo's own pipeline.
 unit_tests:
   stage: test
   image: mcr.microsoft.com/dotnet/sdk:10.0
@@ -52,42 +58,64 @@ build_image:
     GIT_SUBMODULE_DEPTH: 1
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
   script:
-    - docker build --pull -t $DOCKER_IMAGE_NAME .
-    - docker build -t $DOCKER_MIGRATOR_IMAGE --target migrator .
-    - docker push $DOCKER_IMAGE_NAME
-    - docker push $DOCKER_MIGRATOR_IMAGE
-  only:
-    - main
-    - stage
+    - docker buildx create --use --driver docker-container --driver-opt network=host
+    # Основной образ (последний stage = final) + образ мигратора (stage `migrator`).
+    - docker buildx build --pull --provenance=false --sbom=false
+        --cache-from type=registry,ref=$CI_REGISTRY_IMAGE:buildcache
+        --cache-to type=registry,ref=$CI_REGISTRY_IMAGE:buildcache,mode=max
+        -t $DOCKER_IMAGE_NAME --push .
+    - docker buildx build --pull --provenance=false --sbom=false
+        --cache-from type=registry,ref=$CI_REGISTRY_IMAGE:buildcache
+        --cache-to type=registry,ref=$CI_REGISTRY_IMAGE:buildcache,mode=max
+        --target migrator
+        -t $DOCKER_MIGRATOR_IMAGE --push .
 
-.deploy_template:
+# K8s-deploy по стандарту кластера: манифесты живут в k8s/ рядом с кодом.
+deploy:
   stage: deploy
-  image: docker:27.5.0
-  before_script:
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | base64 -d | ssh-add -
-    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - echo -e "Host *\n\tStrictHostKeyChecking no\n\tPort $TARGET_PORT" > ~/.ssh/config
-    - docker context create remote-target --docker "host=ssh://$TARGET_USER@$TARGET_HOST"
-  script:
-    - cp $TARGET_ENV_FILE .env
-    - DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME
-      DOCKER_MIGRATOR_IMAGE=$DOCKER_MIGRATOR_IMAGE
-      docker --context remote-target compose --profile tools run --rm migrator
-    - DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME
-      docker --context remote-target compose up -d --remove-orphans
-    - docker --context remote-target image prune -f
-
-deploy_prod:
-  extends: .deploy_template
-  needs: [build_image]
-  variables:
-    TARGET_PORT: $SSH_PORT_PROD
-    TARGET_HOST: $SSH_HOST_PROD
-    TARGET_USER: $SSH_USER_PROD
-    TARGET_ENV_FILE: $PROD_ENV_FILE
+  image:
+    name: alpine/kubectl:1.37.1
+    entrypoint: [""]
+  tags: [saas-linux-small-amd64]
+  resource_group: pingtower-production
   environment:
     name: production
-  only:
-    - main
+    url: https://api.pingtower.tech
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+  allow_failure: false
+  manual_confirmation: "Применить миграции и обновить API в production?"
+  timeout: 40m
+  script:
+    - kubectl config use-context pingtower/infra:pingtower
+    - sed -i "s/REPLACE_WITH_COMMIT_SHA/$CI_COMMIT_SHA/g" k8s/kustomization.yaml k8s/migration-job.yaml
+    - kubectl apply --dry-run=server -k k8s/
+    # Секреты приложения (Store api → ExternalSecret api).
+    - kubectl -n pingtower apply -f k8s/secrets/store.yaml
+    - kubectl -n pingtower wait --for=condition=Ready secretstore/gitlab-pingtower-api --timeout=120s
+    - kubectl -n pingtower apply -f k8s/secrets/external-secrets.yaml
+    - kubectl -n pingtower wait --for=condition=Ready externalsecret/api --timeout=120s
+    # Инфраструктурные секреты и registry — их владелец pingtower-infra.
+    - kubectl -n pingtower wait --for=condition=Ready
+        externalsecret/postgres-app externalsecret/redis
+        externalsecret/rabbitmq externalsecret/clickhouse
+        externalsecret/gitlab-registry --timeout=120s
+    - kubectl -n pingtower get secret api postgres-app redis rabbitmq clickhouse gitlab-registry -o name
+    - kubectl -n pingtower apply -f k8s/service.yaml -f k8s/ingress.yaml
+    - kubectl -n pingtower wait --for=create certificate/api-tls --timeout=60s
+    - kubectl -n pingtower wait --for=condition=Ready certificate/api-tls --timeout=600s
+    # Миграции — отдельно, до rollout Deployment (заменяет compose-профиль tools).
+    - kubectl -n pingtower delete job api-migrate --ignore-not-found --wait=true --timeout=60s
+    - kubectl create -f k8s/migration-job.yaml
+    - |
+      if ! kubectl -n pingtower wait --for=condition=Complete job/api-migrate --timeout=660s; then
+        kubectl -n pingtower logs job/api-migrate --all-containers=true || true
+        exit 1
+      fi
+    - kubectl -n pingtower logs job/api-migrate
+    - kubectl apply -k k8s/
+    - kubectl -n pingtower rollout status deployment/api --timeout=600s

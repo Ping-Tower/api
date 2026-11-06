@@ -1,0 +1,224 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: pingtower
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: gitlab-registry
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: api
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: api
+          image: registry.gitlab.com/pingtower/api:REPLACE_WITH_COMMIT_SHA
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: api
+          env:
+            # Хранилища и брокер — имена и параметры из infra ConfigMap.
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: password
+            - name: ConnectionStrings__Postgres
+              value: "Host=$(POSTGRES_HOST);Port=$(POSTGRES_PORT);Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: REDIS_PORT
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: password
+            - name: RedisSettings__Configuration
+              value: "$(REDIS_HOST):$(REDIS_PORT),password=$(REDIS_PASSWORD),defaultDatabase=0"
+            - name: CLICKHOUSE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: CLICKHOUSE_HOST
+            - name: CLICKHOUSE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: CLICKHOUSE_PORT
+            - name: CLICKHOUSE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: CLICKHOUSE_USER
+            - name: CLICKHOUSE_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: CLICKHOUSE_DB
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clickhouse
+                  key: password
+            - name: ClickHouseSettings__ConnectionString
+              value: "Host=$(CLICKHOUSE_HOST);Protocol=http;Port=$(CLICKHOUSE_PORT);Username=$(CLICKHOUSE_USER);Password=$(CLICKHOUSE_PASSWORD);Database=$(CLICKHOUSE_DB)"
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_HOST
+            - name: RABBITMQ_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_PORT
+            - name: RABBITMQ_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_USER
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq
+                  key: password
+            - name: RabbitMqSettings__HostName
+              value: $(RABBITMQ_HOST)
+            - name: RabbitMqSettings__Port
+              value: $(RABBITMQ_PORT)
+            - name: RabbitMqSettings__UserName
+              value: $(RABBITMQ_USER)
+            - name: RabbitMqSettings__Password
+              value: $(RABBITMQ_PASSWORD)
+            - name: RabbitMqSettings__MainQueue
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_MAIN_QUEUE
+            - name: RabbitMqSettings__TelegramQueue
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_TELEGRAM_QUEUE
+            - name: RabbitMqSettings__ServerEventsExchange
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_SERVER_EVENTS_EXCHANGE
+            - name: RabbitMqSettings__ServerAddedRoutingKey
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_SERVER_ADDED_ROUTING_KEY
+            - name: RabbitMqSettings__ServerUpdatedRoutingKey
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_SERVER_UPDATED_ROUTING_KEY
+            - name: RabbitMqSettings__ServerDeletedRoutingKey
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_SERVER_DELETED_ROUTING_KEY
+            - name: RabbitMqSettings__ServerStatusChangedQueue
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: RABBITMQ_SERVER_STATUS_CHANGED_QUEUE
+            # Секреты приложения (Variables репозитория api).
+            - name: JwtSettings__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: api
+                  key: jwt-secret-key
+            - name: TelegramAuthSettings__BotToken
+              valueFrom:
+                secretKeyRef:
+                  name: api
+                  key: telegram-bot-token
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3

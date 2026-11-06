@@ -1,0 +1,46 @@
+# Недесертные runtime-настройки api.
+# Дефолты взяты из api/src/Presentation/appsettings.example.json; домены → pingtower.tech.
+# Секреты (JWT, токен Telegram, пароли БД) передаются через secretKeyRef.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api
+  namespace: pingtower
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_URLS: http://+:8080
+  # Identity: требования к паролям, блокировка аккаунта.
+  AspNetIdentity__Password__RequireDigit: "true"
+  AspNetIdentity__Password__RequireLowercase: "true"
+  AspNetIdentity__Password__RequireUppercase: "true"
+  AspNetIdentity__Password__RequireNonAlphanumeric: "false"
+  AspNetIdentity__Password__RequiredLength: "8"
+  AspNetIdentity__Lockout__DefaultLockoutTimespanInMinutes: "5"
+  AspNetIdentity__Lockout__MaxFailedAccessAttempts: "5"
+  AspNetIdentity__Lockout__AllowedForNewUsers: "true"
+  AspNetIdentity__User__RequireUniqueEmail: "true"
+  AspNetIdentity__SignIn__RequireConfirmedEmail: "true"
+  # JWT.
+  JwtSettings__Audience: PingTowerClient
+  JwtSettings__Issuer: PingTowerApi
+  JwtSettings__ExpireInMinute: "60"
+  JwtSettings__RefreshTokenExpireInDays: "7"
+  # Telegram Login Widget: проверка данных виджета.
+  TelegramAuthSettings__AuthLifetimeMinutes: "10"
+  # Ссылки в письмах и приложении.
+  AuthLinkSettings__WebAppUrl: https://pingtower.tech
+  AuthLinkSettings__VerifyEmailPathTemplate: /auth/verify-email?email={email}&code={code}
+  AuthLinkSettings__ResetPasswordPathTemplate: /auth/reset-password?email={email}&code={code}
+  AuthEmailRateLimitSettings__VerificationEmailCooldownSeconds: "60"
+  AuthEmailRateLimitSettings__PasswordResetEmailCooldownSeconds: "60"
+  # Кнопки и ссылки приложения.
+  AppLinksSettings__WebAppUrl: https://pingtower.tech
+  AppLinksSettings__ServerPathTemplate: /servers/{serverId}
+  AppLinksSettings__TelegramDashboardButtonText: "\U0001F4CA Дашборд"
+  # CORS: сайт + домены Telegram WebApp (iframe).
+  # TODO: сверить фактические origins WebApp перед первым деплоем.
+  Cors__AllowedOrigins__0: https://pingtower.tech
+  Cors__AllowedOrigins__1: https://web.telegram.org
+  Cors__AllowedOrigins__2: https://oauth.telegram.org
+  # Настройки соединений собираются из pingtower-infra (ConfigMap) и секретов.
+  RedisSettings__KeyPrefix: api

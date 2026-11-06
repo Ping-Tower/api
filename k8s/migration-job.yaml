@@ -1,0 +1,78 @@
+# Запускается отдельно ПЕРЕД применением Deployment; нарочно не в kustomization.yaml.
+# Образ мигратора собран из Dockerfile-stage `migrator` с dotnet-ef (root, без HTTP).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: api-migrate
+  namespace: pingtower
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      # метка нужна для NetworkPolicy weave → postgres: ingress по pod-меткам.
+      labels:
+        app: api-migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: gitlab-registry
+      containers:
+        - name: migrate
+          image: registry.gitlab.com/pingtower/api/migrator:REPLACE_WITH_COMMIT_SHA
+          # Команда дословно из api/docker-compose.yml (профиль tools); --no-build
+          # работает, потому что stage `migrator` наследует собранный stage `build`.
+          command:
+            - dotnet
+            - ef
+            - database
+            - update
+            - --project
+            - /src/src/Infrastructure/Infrastructure.csproj
+            - --startup-project
+            - /src/src/Presentation/Presentation.csproj
+            - --configuration
+            - Release
+            - --no-build
+          # dotnet-ef ставится в /root/.dotnet/tools — job работает под root образа;
+          # ужесточено насколько возможно без правки Dockerfile.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: pingtower-infra
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: password
+            - name: ConnectionStrings__Postgres
+              value: "Host=$(POSTGRES_HOST);Port=$(POSTGRES_PORT);Database=$(POSTGRES_DB);Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi

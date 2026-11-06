@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pingtower
+resources:
+  - secrets/store.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - configmap.yaml
+  - secrets/external-secrets.yaml
+images:
+  - name: registry.gitlab.com/pingtower/api
+    newTag: REPLACE_WITH_COMMIT_SHA
