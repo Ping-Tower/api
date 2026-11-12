@@ -11,7 +11,8 @@ spec:
   ttlSecondsAfterFinished: 86400
   template:
     metadata:
-      # метка нужна для NetworkPolicy weave → postgres: ingress по pod-меткам.
+      # метка нужна для NetworkPolicy postgres (ingress по pod-меткам).
+      # В кластере flannel без enforce — политика декларативная, метку сохраняем.
       labels:
         app: api-migrate
     spec:

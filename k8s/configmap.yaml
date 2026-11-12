@@ -1,4 +1,4 @@
-# Недесертные runtime-настройки api.
+# Несекретные runtime-настройки api.
 # Дефолты взяты из api/src/Presentation/appsettings.example.json; домены → pingtower.tech.
 # Секреты (JWT, токен Telegram, пароли БД) передаются через secretKeyRef.
 apiVersion: v1
