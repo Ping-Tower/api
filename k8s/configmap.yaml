@@ -30,12 +30,12 @@ data:
   # Ссылки в письмах и приложении.
   AuthLinkSettings__WebAppUrl: https://pingtower.tech
   AuthLinkSettings__VerifyEmailPathTemplate: /auth/verify-email?email={email}&code={code}
-  AuthLinkSettings__ResetPasswordPathTemplate: /auth/reset-password?email={email}&code={code}
+  AuthLinkSettings__ResetPasswordPathTemplate: /reset-password?email={email}&code={code}
   AuthEmailRateLimitSettings__VerificationEmailCooldownSeconds: "60"
   AuthEmailRateLimitSettings__PasswordResetEmailCooldownSeconds: "60"
   # Кнопки и ссылки приложения.
   AppLinksSettings__WebAppUrl: https://pingtower.tech
-  AppLinksSettings__ServerPathTemplate: /servers/{serverId}
+  AppLinksSettings__ServerPathTemplate: /app/servers/{serverId}
   AppLinksSettings__TelegramDashboardButtonText: "\U0001F4CA Дашборд"
   # CORS: сайт + домены Telegram WebApp (iframe).
   # TODO: сверить фактические origins WebApp перед первым деплоем.
