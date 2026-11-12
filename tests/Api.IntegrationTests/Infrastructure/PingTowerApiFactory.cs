@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Infrastructure.RabbitMqManager;
+using Infrastructure.DataManager.Contexts;
+using Microsoft.EntityFrameworkCore;
 
 namespace Api.IntegrationTests;
 
@@ -48,7 +50,7 @@ public sealed class PingTowerApiFactory : WebApplicationFactory<Program>
         ["RabbitMqSettings:ServerUpdatedRoutingKey"] = "server.target.updated",
         ["RabbitMqSettings:ServerDeletedRoutingKey"] = "server.target.deleted",
         ["RabbitMqSettings:ServerStatusChangedQueue"] = "q.api.status-events",
-        ["RedisSettings:Configuration"] = "localhost:6379",
+        ["RedisSettings:Configuration"] = Environment.GetEnvironmentVariable("TEST_REDIS_CONNECTION_STRING") ?? "localhost:6379",
         ["RedisSettings:KeyPrefix"] = "api",
         ["AppLinksSettings:WebAppUrl"] = "https://app.example.com",
         ["AppLinksSettings:ServerPathTemplate"] = "/servers/{serverId}",
@@ -78,6 +80,13 @@ public sealed class PingTowerApiFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        // The application seeds Identity roles on startup, so its test schema must exist first.
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(TestConfiguration["ConnectionStrings:Postgres"])
+            .Options;
+        using (var database = new AppDbContext(options))
+            database.Database.Migrate();
+
         builder.UseEnvironment("Development");
 
         builder.ConfigureAppConfiguration((_, configBuilder) =>

@@ -18,6 +18,12 @@ public static class DI
         services.AddSingleton(redisSettings);
         services.AddSingleton(redisConnection);
         services.AddSingleton<IConnectionMultiplexer>(redisConnection);
+        services.AddSignalR()
+            .AddStackExchangeRedis(options =>
+            {
+                options.ConnectionFactory = _ => Task.FromResult<IConnectionMultiplexer>(redisConnection);
+                options.Configuration.ChannelPrefix = RedisChannel.Literal($"PingTower:{redisSettings.KeyPrefix}:signalr");
+            });
         services.AddDataProtection()
             .SetApplicationName("PingTower")
             .PersistKeysToStackExchangeRedis(redisConnection, "DataProtection-Keys");

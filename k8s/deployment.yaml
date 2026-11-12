@@ -4,8 +4,7 @@ metadata:
   name: api
   namespace: pingtower
 spec:
-  # Один экземпляр: SignalR пока без backplane между репликами.
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 3
   progressDeadlineSeconds: 600
   strategy:

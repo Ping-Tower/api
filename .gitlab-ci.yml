@@ -33,11 +33,14 @@ integration_tests:
   services:
     - name: postgres:17-alpine
       alias: postgres
+    - name: redis:7-alpine
+      alias: redis
   variables:
     POSTGRES_DB: pingtower_test
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: test
     POSTGRES_HOST_AUTH_METHOD: trust
+    TEST_REDIS_CONNECTION_STRING: "redis:6379"
     TEST_POSTGRES_CONNECTION_STRING: "Host=postgres;Port=5432;Database=pingtower_test;Username=postgres;Password=test"
   script:
     - dotnet test tests/Api.IntegrationTests/Api.IntegrationTests.csproj
