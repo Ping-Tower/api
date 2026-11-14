@@ -12,4 +12,5 @@ public record CreateTelegramAccountCommand(
     [property: JsonPropertyName("photo_url")] string? PhotoUrl,
     [property: JsonPropertyName("auth_date")] long AuthDate,
     [property: JsonPropertyName("hash")]
-    string Hash) : IRequest<TelegramAccount>, ICommand;
+    string Hash,
+    [property: JsonPropertyName("last_name")] string? LastName = null) : IRequest<TelegramAccount>, ICommand;

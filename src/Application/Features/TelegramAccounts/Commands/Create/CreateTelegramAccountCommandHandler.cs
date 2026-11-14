@@ -32,7 +32,8 @@ public class CreateTelegramAccountCommandHandler : IRequestHandler<CreateTelegra
                 request.Username,
                 request.PhotoUrl,
                 request.AuthDate,
-                request.Hash))
+                request.Hash,
+                request.LastName))
         {
             throw new DomainException("telegram", ["Telegram login data is invalid or expired."]);
         }

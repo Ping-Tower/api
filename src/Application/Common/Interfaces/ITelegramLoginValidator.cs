@@ -8,7 +8,8 @@ public interface ITelegramLoginValidator
         string? username,
         string? photoUrl,
         long authDate,
-        string hash);
+        string hash,
+        string? lastName = null);
 
     DateTimeOffset GetAuthDateUtc(long authDate);
 }

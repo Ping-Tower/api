@@ -21,7 +21,8 @@ public class TelegramLoginValidator : ITelegramLoginValidator
         string? username,
         string? photoUrl,
         long authDate,
-        string hash)
+        string hash,
+        string? lastName = null)
     {
         if (string.IsNullOrWhiteSpace(_settings.BotToken))
             throw new DomainException("telegram", ["Telegram bot token is not configured."]);
@@ -36,6 +37,9 @@ public class TelegramLoginValidator : ITelegramLoginValidator
             ["first_name"] = firstName,
             ["id"] = telegramUserId.ToString(CultureInfo.InvariantCulture)
         };
+
+        if (lastName is not null)
+            payload["last_name"] = lastName;
 
         if (!string.IsNullOrWhiteSpace(username))
             payload["username"] = username;

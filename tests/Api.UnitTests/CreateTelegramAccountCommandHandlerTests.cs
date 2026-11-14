@@ -33,10 +33,12 @@ public class CreateTelegramAccountCommandHandlerTests
             "ivanov",
             "https://example.com/avatar.png",
             1712311111,
-            "hash");
+            "hash",
+            "Ivanov");
 
         var result = await handler.Handle(command, CancellationToken.None);
 
+        Assert.Equal(command.LastName, validator.LastName);
         Assert.NotNull(repository.UpsertedAccount);
         Assert.Same(repository.UpsertedAccount, result);
         Assert.Equal(repository.UpsertedAccount!.Id, result.Id);
@@ -114,8 +116,13 @@ public class CreateTelegramAccountCommandHandlerTests
         public bool IsValidResult { get; init; }
         public DateTimeOffset AuthDateUtc { get; init; }
 
-        public bool IsValid(long telegramUserId, string firstName, string? username, string? photoUrl, long authDate, string hash) =>
-            IsValidResult;
+        public string? LastName { get; private set; }
+
+        public bool IsValid(long telegramUserId, string firstName, string? username, string? photoUrl, long authDate, string hash, string? lastName = null)
+        {
+            LastName = lastName;
+            return IsValidResult;
+        }
 
         public DateTimeOffset GetAuthDateUtc(long authDate) => AuthDateUtc;
     }
