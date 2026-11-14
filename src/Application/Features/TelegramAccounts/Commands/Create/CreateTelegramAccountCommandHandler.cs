@@ -62,7 +62,7 @@ public class CreateTelegramAccountCommandHandler : IRequestHandler<CreateTelegra
         await _telegramAccountRepository.UpsertAsync(account, cancellationToken);
         await _telegramNotificationService.SendMessageAsync(
             request.TelegramUserId,
-            "✅ <b>Telegram успешно привязан</b>\nТеперь уведомления PingTower будут приходить сюда.",
+            "<b>PingTower</b> / Telegram connected\n\nYour alerts have a new home.\nYou’ll receive monitor alerts here when your notification rules trigger.\n\nManage delivery in <b>Notifications</b> and linked accounts in <b>Integrations</b>.",
             null,
             cancellationToken);
 

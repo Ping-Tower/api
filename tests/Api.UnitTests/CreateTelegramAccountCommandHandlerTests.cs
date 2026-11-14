@@ -52,7 +52,7 @@ public class CreateTelegramAccountCommandHandlerTests
 
         var sentMessage = Assert.Single(notificationService.Messages);
         Assert.Equal(command.TelegramUserId, sentMessage.ChatId);
-        Assert.Equal("✅ <b>Telegram успешно привязан</b>\nТеперь уведомления PingTower будут приходить сюда.", sentMessage.Text);
+        Assert.Contains("<b>PingTower</b> / Telegram connected", sentMessage.Text);
         Assert.Null(sentMessage.InlineButtons);
     }
 

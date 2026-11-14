@@ -61,13 +61,15 @@ public class ServerStatusChangeProcessorTests
         Assert.Equal("10.0.0.5", email.Data["host"]);
         Assert.Equal("DOWN", email.Data["status"]);
         Assert.True(email.Data.ContainsKey("timestampUtc"));
+        Assert.Equal("https://app.example.com/servers/server-1", email.Data["serverUrl"]);
 
         Assert.Equal(2, telegramService.Messages.Count);
         foreach (var message in telegramService.Messages)
         {
-            Assert.Contains("🔴 <b>Внимание!</b>", message.Text);
-            Assert.Contains("Сервер <b>Primary DB</b> (10.0.0.5) недоступен.", message.Text);
-            Assert.Contains("Время: ", message.Text);
+            Assert.Contains("<b>PingTower</b> / ◼ Target unavailable", message.Text);
+            Assert.Contains("<b>Primary DB</b>", message.Text);
+            Assert.Contains("<code>10.0.0.5</code>", message.Text);
+            Assert.Contains("Observed  <code>", message.Text);
 
             var row = Assert.Single(message.InlineButtons!);
             var button = Assert.Single(row);
@@ -127,6 +129,31 @@ public class ServerStatusChangeProcessorTests
         Assert.Empty(emailService.Messages);
         Assert.Empty(telegramService.Messages);
         Assert.Empty(cooldownStore.SetCalls);
+    }
+
+    [Theory]
+    [InlineData(ServerStatus.DOWN, "Target unavailable")]
+    [InlineData(ServerStatus.UP, "Target recovered")]
+    public async Task ProcessAsync_FormatsAndEscapesUserProvidedNames(ServerStatus status, string eventName)
+    {
+        var context = new ServerNotificationContextDto
+        {
+            ServerId = "server-1", UserId = "user-1", ServerName = "<b>DB</b> & _[test]",
+            Host = "host<test>&", OnDown = true, OnUp = true, TelegramUserIds = [101]
+        };
+        var telegram = new FakeTelegramNotificationService();
+        var processor = new ServerStatusChangeProcessor(
+            new FakeNotificationContextRepository(context), new FakeNotificationCooldownStore(false),
+            new FakeEmailService(), telegram, new FakeServerStatusNotifier(),
+            new AppLinksSettings { WebAppUrl = "https://pingtower.tech", ServerPathTemplate = "/app/servers/{serverId}" },
+            NullLogger<ServerStatusChangeProcessor>.Instance);
+        await processor.ProcessAsync("server-1", status, CancellationToken.None);
+        var message = Assert.Single(telegram.Messages);
+        Assert.Contains(eventName, message.Text);
+        Assert.Contains("&lt;b&gt;DB&lt;/b&gt; &amp; _[test]", message.Text);
+        Assert.Contains("<code>host&lt;test&gt;&amp;</code>", message.Text);
+        Assert.DoesNotContain("<b>DB</b>", message.Text);
+        Assert.Equal("https://pingtower.tech/app/servers/server-1", message.InlineButtons![0][0].Url);
     }
 
     private sealed class FakeNotificationContextRepository(ServerNotificationContextDto? context) : INotificationContextRepository

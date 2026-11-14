@@ -114,34 +114,35 @@ public class ServerStatusChangeProcessor : IServerStatusChangeProcessor
         };
     }
 
-    private static IReadOnlyDictionary<string, string?> BuildEmailData(ServerNotificationContextDto context, ServerStatus status)
+    private IReadOnlyDictionary<string, string?> BuildEmailData(ServerNotificationContextDto context, ServerStatus status)
     {
         return new Dictionary<string, string?>
         {
             ["serverName"] = DisplayName(context),
             ["host"] = string.IsNullOrWhiteSpace(context.Host) ? "unknown host" : context.Host,
             ["status"] = status.ToString(),
-            ["timestampUtc"] = DateTimeOffset.UtcNow.ToString("u")
+            ["timestampUtc"] = DateTimeOffset.UtcNow.ToString("u"),
+            ["serverUrl"] = _appLinksSettings.BuildServerUrl(context.ServerId)
         };
     }
 
     private static int NormalizeCooldown(int cooldownSec) => cooldownSec >= 0 ? cooldownSec : 600;
 
-    private string BuildTelegramText(ServerNotificationContextDto context, ServerStatus status)
+    private static string BuildTelegramText(ServerNotificationContextDto context, ServerStatus status)
     {
         var serverName = WebUtility.HtmlEncode(DisplayName(context));
-        var serverSuffix = BuildHostSuffix(context);
-        var timestampUtc = DateTimeOffset.UtcNow.ToString("HH:mm 'UTC'");
+        var host = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(context.Host) ? "unknown host" : context.Host);
+        var timestampUtc = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
+        var eventName = status == ServerStatus.DOWN ? "◼ Target unavailable" : "○ Target recovered";
+        var description = status == ServerStatus.DOWN
+            ? "The target crossed its failure threshold. Check recent results for details."
+            : "The target is responding again. Monitoring continues.";
 
-        return status switch
-        {
-            ServerStatus.DOWN =>
-                $"🔴 <b>Внимание!</b>\nСервер <b>{serverName}</b>{serverSuffix} недоступен.\n\nВремя: {timestampUtc}",
-            ServerStatus.UP =>
-                $"🟢 <b>Сервер восстановлен</b>\nСервер <b>{serverName}</b>{serverSuffix} снова доступен.\n\nВремя: {timestampUtc}",
-            _ =>
-                $"ℹ️ <b>Статус сервера изменён</b>\nСервер <b>{serverName}</b>{serverSuffix} сменил статус на {WebUtility.HtmlEncode(status.ToString())}.\n\nВремя: {timestampUtc}"
-        };
+        return $"<b>PingTower</b> / {eventName}\n\n" +
+               $"<b>{serverName}</b>\n{description}\n\n" +
+               $"Host  <code>{host}</code>\n" +
+               $"Status  <b>{status}</b>\n" +
+               $"Observed  <code>{timestampUtc}</code>";
     }
 
     private IReadOnlyList<IReadOnlyList<TelegramInlineButtonDto>> BuildTelegramButtons(ServerNotificationContextDto context)
@@ -167,11 +168,4 @@ public class ServerStatusChangeProcessor : IServerStatusChangeProcessor
         return context.ServerId;
     }
 
-    private static string BuildHostSuffix(ServerNotificationContextDto context)
-    {
-        if (string.IsNullOrWhiteSpace(context.Host))
-            return string.Empty;
-
-        return $" ({WebUtility.HtmlEncode(context.Host)})";
-    }
 }
