@@ -111,5 +111,5 @@ nuclei-scan:
     - mkdir -p security-reports
     - printf '%s\n' "$DAST_TARGETS" | tr ' ' '\n' > security-reports/nuclei-targets.txt
     - nuclei -l security-reports/nuclei-targets.txt -severity critical,high,medium -tags cve,exposure,misconfiguration
-      -rate-limit 5 -concurrency 2 -no-interactsh -jsonl -o security-reports/nuclei.jsonl
+      -rate-limit 30 -concurrency 5 -no-interactsh -jsonl -o security-reports/nuclei.jsonl
     - test ! -s security-reports/nuclei.jsonl
