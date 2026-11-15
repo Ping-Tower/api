@@ -16,7 +16,7 @@ RUN dotnet publish "Presentation.csproj" -c Release -o /app/publish /p:UseAppHos
 
 FROM build AS migrator
 ENV PATH="${PATH}:/root/.dotnet/tools"
-RUN dotnet tool install --global dotnet-ef --version 10.0.1
+RUN dotnet tool install --global dotnet-ef --version 10.0.15
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
