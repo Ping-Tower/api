@@ -1,0 +1,115 @@
+# Security gates adapted from tramplin1. Versions are pinned for reproducible CI.
+.security-check:
+  tags:
+    - saas-linux-small-amd64
+  before_script: []
+  after_script: []
+  services: []
+  cache: []
+  interruptible: true
+  timeout: 20m
+  allow_failure: false
+  rules:
+    - when: on_success
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - security-reports/
+gitleaks:
+  extends: .security-check
+  stage: test
+  image:
+    name: zricethezav/gitleaks:v8.30.1
+    entrypoint:
+      - ''
+  script:
+    - mkdir -p security-reports
+    - gitleaks detect --source . --no-git --redact --report-format json --report-path security-reports/gitleaks.json
+validate-k8s:
+  extends: .security-check
+  stage: test
+  image:
+    name: alpine/kubectl:1.37.1
+    entrypoint:
+      - ''
+  script:
+    - mkdir -p security-reports
+    - kubectl kustomize k8s/ > security-reports/kubernetes.yaml
+semgrep:
+  extends: .security-check
+  stage: test
+  image:
+    name: semgrep/semgrep:1.172.0
+    entrypoint:
+      - ''
+  script:
+    - mkdir -p security-reports
+    - semgrep scan --config=p/csharp --config=p/owasp-top-ten --metrics=off --error
+      --json-output=security-reports/semgrep.json --sarif-output=security-reports/semgrep.sarif .
+nuget-audit:
+  extends: .security-check
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:10.0
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_DEPTH: '1'
+  script:
+    - mkdir -p security-reports
+    - dotnet restore src/src.sln -p:NuGetAudit=true -p:NuGetAuditMode=all -p:NuGetAuditLevel=high
+      -warnaserror:NU1900,NU1903,NU1904 > security-reports/nuget-audit.log 2>&1 || { cat
+      security-reports/nuget-audit.log; exit 1; }
+    - cat security-reports/nuget-audit.log
+trivy-image:
+  extends: .security-check
+  stage: container_scan
+  image:
+    name: aquasec/trivy:0.74.0
+    entrypoint:
+      - ''
+  variables:
+    TRIVY_CACHE_DIR: $CI_PROJECT_DIR/.cache/trivy
+    TRIVY_USERNAME: $CI_REGISTRY_USER
+    TRIVY_PASSWORD: $CI_REGISTRY_PASSWORD
+    SECURITY_IMAGES: $DOCKER_IMAGE_NAME $DOCKER_MIGRATOR_IMAGE
+  cache:
+    key: trivy-0.74.0
+    paths:
+      - .cache/trivy/
+  needs:
+    - job: build_image
+      artifacts: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+  script:
+    - mkdir -p security-reports
+    - |
+      test -n "$SECURITY_IMAGES"
+      status=0
+      index=0
+      for image in $SECURITY_IMAGES; do
+        index=$((index + 1))
+        trivy image --image-src remote --scanners vuln --severity HIGH,CRITICAL --exit-code 1 \
+          --format json --output "security-reports/trivy-image-$index.json" "$image" || status=1
+      done
+      exit "$status"
+nuclei-scan:
+  extends: .security-check
+  stage: scan
+  needs:
+    - job: deploy
+      artifacts: false
+  image:
+    name: projectdiscovery/nuclei:v3.11.0
+    entrypoint:
+      - ''
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"
+  variables:
+    DAST_TARGETS: https://api.pingtower.tech
+  script:
+    - mkdir -p security-reports
+    - printf '%s\n' "$DAST_TARGETS" | tr ' ' '\n' > security-reports/nuclei-targets.txt
+    - nuclei -l security-reports/nuclei-targets.txt -severity critical,high,medium -tags cve,exposure,misconfiguration
+      -rate-limit 5 -concurrency 2 -no-interactsh -jsonl -o security-reports/nuclei.jsonl
+    - test ! -s security-reports/nuclei.jsonl
